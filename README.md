@@ -56,7 +56,7 @@ Pastikan Anda sudah menginstall Node.js dan CLASP.
 
 ```bash
 # Clone repository ini
-git clone [https://github.com/benialandra/appscript_money_tracker.git](https://github.com/benialandra/appscript_money_tracker.git)
+git clone  https://github.com/benialandra/appscript_money_tracker.git
 
 # Masuk ke folder
 cd appscript_money_tracker
@@ -71,3 +71,26 @@ clasp clone "SCRIPT_ID_GOOGLE_ANDA"
 
 # Push kode ke Google Server
 clasp push
+
+
+3. Deploy
+    a. Buka Script Editor di browser via clasp open.
+    b. Klik Deploy > New Deployment.
+    c. Pilih type Web App.
+    d. Execute as: Me.
+    e. Who has access: Anyone (atau Only Myself).
+    f. Klik Deploy dan buka URL yang diberikan.
+
+
+📂 Struktur Folder
+    Code.js - Logic Backend (Server-side Google Script).
+    Index.html - Halaman utama (Container).
+    ViewApp.html - Komponen tampilan aplikasi (Dashboard, Input, dll).
+    ViewLogin.html - Komponen tampilan login.
+    Styles.html - CSS & Styling (Custom CSS + Bootstrap Override).
+    JavaScript.html - Logic Frontend (Fetch data, DOM Manipulation, Chart.js).
+
+👤 Author
+    Beni Alandra
+    Data Analyst | IT Support | Database Administrator
+    Location: Batam, Indonesia
