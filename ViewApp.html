@@ -7,16 +7,16 @@
         <p>Isi Dompet</p>
       </div>
       <div class="list-group list-group-flush">
-        <a class="list-group-item active"
-          onclick="switchPage('dashboard', this)"><i class="fas fa-home me-3"></i>Dashboard</a>
+        <a class="list-group-item active" onclick="switchPage('dashboard', this)"><i
+            class="fas fa-home me-3"></i>Dashboard</a>
         <a class="list-group-item" onclick="switchPage('saldo', this)"><i class="fas fa-university me-3"></i>Saldo
           Akun</a>
-        <a class="list-group-item"
-          onclick="switchPage('asset', this)"><i class="fas fa-chart-pie me-3"></i>Portfolio</a>
+        <a class="list-group-item" onclick="switchPage('asset', this)"><i
+            class="fas fa-chart-pie me-3"></i>Portfolio</a>
         <a class="list-group-item" onclick="switchPage('input', this)"><i class="fas fa-plus-circle me-3"></i>Input
           Data</a>
-        <a class="list-group-item"
-          onclick="switchPage('report', this)"><i class="fas fa-file-invoice me-3"></i>Laporan</a>
+        <a class="list-group-item" onclick="switchPage('report', this)"><i
+            class="fas fa-file-invoice me-3"></i>Laporan</a>
         <a class="list-group-item" onclick="switchPage('profile', this)"><i class="fas fa-user-cog me-3"></i>Profile</a>
         <a class="list-group-item text-warning" onclick="doLogout()"><i class="fas fa-sign-out-alt me-3"></i>Logout</a>
       </div>
@@ -36,7 +36,8 @@
             <i class="fas fa-moon"></i>
           </button>
 
-          <button class="btn btn-primary rounded-circle d-md-none shadow-sm" onclick="switchPage('input', null)" style="width:35px;height:35px">
+          <button class="btn btn-primary rounded-circle d-md-none shadow-sm" onclick="switchPage('input', null)"
+            style="width:35px;height:35px">
             <i class="fas fa-plus"></i>
           </button>
         </div>
@@ -141,20 +142,24 @@
                   <i class="fas fa-chevron-down ms-2"></i>
                 </div>
                 <button class="btn btn-success btn-sm rounded-pill fw-bold shadow-sm" onclick="showAddAccountModal()">
-          <i class="fas fa-plus me-1"></i> Akun Baru
-        </button>
+                  <i class="fas fa-plus me-1"></i> Akun Baru
+                </button>
               </div>
               <div id="panelSaldoSetting" style="display: none;" class="mt-3 border-top pt-3">
                 <form onsubmit="handleUpdateSaldo(event)" class="row g-2 align-items-end">
                   <div class="col-md-5">
-                    <label class="small text-muted fw-bold">Pilih Akun</label><select id="updateAkunSel" class="form-select"></select>
+                    <label class="small text-muted fw-bold">Pilih Akun</label><select id="updateAkunSel"
+                      class="form-select"></select>
                   </div>
-                  <div class="col-md-5"><label class="small text-muted fw-bold">Set Saldo Awal</label><input type="text" id="updateNominal" class="form-control" placeholder="0" onkeyup="formatRupiahTyping(this)" required>
+                  <div class="col-md-5"><label class="small text-muted fw-bold">Set Saldo Awal</label><input type="text"
+                      id="updateNominal" class="form-control" placeholder="0" onkeyup="formatRupiahTyping(this)"
+                      required>
                   </div>
                   <div class="col-md-2"><button type="submit" class="btn btn-warning w-100 fw-bold">Update</button>
                   </div>
                 </form>
-                <small class="text-muted fst-italic mt-2 d-block">*Hanya untuk koreksi saldo awal (bukan transaksi).</small>
+                <small class="text-muted fst-italic mt-2 d-block">*Hanya untuk koreksi saldo awal (bukan
+                  transaksi).</small>
               </div>
 
             </div>
@@ -251,20 +256,29 @@
               <form id="formInput" onsubmit="handleSimpan(event)">
                 <input type="hidden" id="inputMode" name="mode" value="transaksi">
 
-                <div class="mb-3"><label class="text-muted small fw-bold">TANGGAL</label><input type="date" name="tanggal" class="form-control form-control-lg" required>
+                <div class="mb-3"><label class="text-muted small fw-bold">TANGGAL</label><input type="date"
+                    name="tanggal" class="form-control form-control-lg" required>
                 </div>
 
                 <div id="block-transaksi">
                   <div class="row mb-3">
                     <div class="col">
-                      <label class="text-muted small fw-bold">TIPE</label><select name="tipe" id="tipeSel" class="form-select form-select-lg" onchange="updateKat()"><option value="Expense">Pengeluaran</option><option value="Income">Pemasukan</option></select>
+                      <label class="text-muted small fw-bold">TIPE</label><select name="tipe" id="tipeSel"
+                        class="form-select form-select-lg" onchange="updateKat()">
+                        <option value="Expense">Pengeluaran</option>
+                        <option value="Income">Pemasukan</option>
+                      </select>
                     </div>
                     <div class="col">
-                      <label class="text-muted small fw-bold">KATEGORI</label><select name="kategori" id="katSel" class="form-select form-select-lg"></select>
+                      <label class="text-muted small fw-bold">KATEGORI</label><select name="kategori" id="katSel"
+                        class="form-select form-select-lg"></select>
                     </div>
                   </div>
                   <div class="mb-3">
-                    <label class="text-muted small fw-bold">SUMBER DANA</label><select name="sumber" id="sumberSel" class="form-select form-select-lg"><option value="">Memuat...</option></select>
+                    <label class="text-muted small fw-bold">SUMBER DANA</label><select name="sumber" id="sumberSel"
+                      class="form-select form-select-lg">
+                      <option value="">Memuat...</option>
+                    </select>
                   </div>
                 </div>
 
@@ -286,13 +300,19 @@
                   </div>
                 </div>
 
-                <div class="mb-3"><label class="text-muted small fw-bold">JUMLAH (Rp)</label><input type="text" id="inputJumlah" name="jumlah" class="form-control form-control-lg fw-bold text-primary" placeholder="0" onkeyup="formatRupiahTyping(this)" required>
+                <div class="mb-3"><label class="text-muted small fw-bold">JUMLAH (Rp)</label><input type="text"
+                    id="inputJumlah" name="jumlah" class="form-control form-control-lg fw-bold text-primary"
+                    placeholder="0" onkeyup="formatRupiahTyping(this)" required>
                 </div>
-                <div class="mb-3"><label class="text-muted small fw-bold">KETERANGAN</label><input type="text" name="keterangan" class="form-control form-control-lg" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" required>
+                <div class="mb-3"><label class="text-muted small fw-bold">KETERANGAN</label><input type="text"
+                    name="keterangan" class="form-control form-control-lg" style="text-transform: uppercase;"
+                    oninput="this.value = this.value.toUpperCase()" required>
                 </div>
 
                 <div class="d-grid gap-2 mt-4">
-                  <button type="submit" class="btn btn-primary btn-lg rounded-pill hover-scale" id="btnSimpan">Simpan Data</button><button type="button" class="btn btn-light btn-lg rounded-pill" onclick="switchPage('dashboard', null)">Batal</button>
+                  <button type="submit" class="btn btn-primary btn-lg rounded-pill hover-scale" id="btnSimpan">Simpan
+                    Data</button><button type="button" class="btn btn-light btn-lg rounded-pill"
+                    onclick="switchPage('dashboard', null)">Batal</button>
                 </div>
               </form>
 
@@ -305,16 +325,24 @@
         <h3 class="mb-4">Laporan Lengkap</h3>
         <div class="card shadow-sm border-0 p-4 mb-3" style="border-radius: 12px;">
           <div class="row align-items-end g-3">
-            <div class="col-md-3"><label class="text-muted small mb-1">Dari Tanggal</label><input type="date" id="filterStart" class="form-control">
+            <div class="col-md-3"><label class="text-muted small mb-1">Dari Tanggal</label><input type="date"
+                id="filterStart" class="form-control">
             </div>
-            <div class="col-md-3"><label class="text-muted small mb-1">Sampai Tanggal</label><input type="date" id="filterEnd" class="form-control">
+            <div class="col-md-3"><label class="text-muted small mb-1">Sampai Tanggal</label><input type="date"
+                id="filterEnd" class="form-control">
             </div>
             <div class="col-md-3">
-              <label class="text-muted small mb-1">Tipe</label><select id="filterType" class="form-select"><option value="All">Semua</option><option value="Income">Pemasukan</option><option value="Expense">Pengeluaran</option></select>
+              <label class="text-muted small mb-1">Tipe</label><select id="filterType" class="form-select">
+                <option value="All">Semua</option>
+                <option value="Income">Pemasukan</option>
+                <option value="Expense">Pengeluaran</option>
+              </select>
             </div>
             <div class="col-md-3">
               <div class="d-flex gap-2">
-                <button onclick="applyFilter()" class="btn btn-primary w-100"><i class="fas fa-filter me-2"></i>Filter</button><button onclick="resetFilter()" class="btn btn-outline-secondary"><i class="fas fa-sync"></i></button>
+                <button onclick="applyFilter()" class="btn btn-primary w-100"><i
+                    class="fas fa-filter me-2"></i>Filter</button><button onclick="resetFilter()"
+                  class="btn btn-outline-secondary"><i class="fas fa-sync"></i></button>
               </div>
             </div>
           </div>
@@ -350,17 +378,23 @@
               <form id="formProfile" onsubmit="handleUpdateProfile(event)">
                 <div class="alert alert-info small"><i class="fas fa-info-circle me-2"></i>Anda akan otomatis Logout
                   setelah update.</div>
-                <div class="mb-3"><label class="text-muted fw-bold">Username Saat Ini</label><input type="text" class="form-control form-control-lg bg-light" id="oldUser" readonly>
+                <div class="mb-3"><label class="text-muted fw-bold">Username Saat Ini</label><input type="text"
+                    class="form-control form-control-lg bg-light" id="oldUser" readonly>
                 </div>
-                <div class="mb-3"><label class="text-muted fw-bold">Password Lama</label><input type="password" name="oldPass" class="form-control form-control-lg" required>
+                <div class="mb-3"><label class="text-muted fw-bold">Password Lama</label><input type="password"
+                    name="oldPass" class="form-control form-control-lg" required>
                 </div>
                 <hr class="my-4">
-                <div class="mb-3"><label class="text-muted fw-bold">Username Baru</label><input type="text" name="newUser" id="newUser" class="form-control form-control-lg" required>
+                <div class="mb-3"><label class="text-muted fw-bold">Username Baru</label><input type="text"
+                    name="newUser" id="newUser" class="form-control form-control-lg" required>
                 </div>
-                <div class="mb-3"><label class="text-muted fw-bold">Password Baru</label><input type="password" name="newPass" class="form-control form-control-lg" required>
+                <div class="mb-3"><label class="text-muted fw-bold">Password Baru</label><input type="password"
+                    name="newPass" class="form-control form-control-lg" required>
                 </div>
                 <div class="d-grid gap-2 mt-4">
-                  <button type="submit" class="btn btn-primary btn-lg rounded-pill" id="btnUpdateProfile">Simpan Perubahan</button><button type="button" class="btn btn-light btn-lg rounded-pill" onclick="switchPage('dashboard', null)">Batal</button>
+                  <button type="submit" class="btn btn-primary btn-lg rounded-pill" id="btnUpdateProfile">Simpan
+                    Perubahan</button><button type="button" class="btn btn-light btn-lg rounded-pill"
+                    onclick="switchPage('dashboard', null)">Batal</button>
                 </div>
               </form>
             </div>
