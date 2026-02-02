@@ -55,21 +55,12 @@ Buat Spreadsheet baru di Google Drive, lalu buat Tab (Sheet) dengan nama berikut
 Pastikan Anda sudah menginstall Node.js dan CLASP.
 
 ```bash
-# Clone repository ini
 git clone  https://github.com/benialandra/appscript_money_tracker.git
-
-# Masuk ke folder
 cd appscript_money_tracker
-
-# Login ke Google Apps Script
 clasp login
-
-# Buat project baru (jika belum ada) atau Clone project yang sudah ada
 clasp create --title "Isi Dompet" --type webapp
-# ATAU
+atau
 clasp clone "SCRIPT_ID_GOOGLE_ANDA"
-
-# Push kode ke Google Server
 clasp push
 
 ```
