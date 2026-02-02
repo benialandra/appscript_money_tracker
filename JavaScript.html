@@ -3,11 +3,12 @@
   var globalData = [];
   var globalSources = { banks: [], wallets: [], cash: [] };
   var globalBalances = {};
+  var chartReportLine;
   var chartLine, chartInc, chartExp, chartAssetBar, chartAssetPie;
 
   // --- DAFTAR KATA KUNCI ASET (Perbaikan Logic) ---
   // Script akan mencari kategori yang MENGANDUNG kata-kata ini
-  const ASSET_KEYWORDS = ['EMAS', 'GOLD', 'CRYPTO', 'BITCOIN', 'SAHAM', 'STOCK', 'REKSADANA', 'INVESTASI', 'DEPOSITO', 'TANAH', 'PROPERTY'];
+  const ASSET_KEYWORDS = ['EMAS', 'PLUANG', 'PEGADAIAN', 'GOLD', 'CRYPTO', 'BITCOIN', 'SAHAM', 'STOCK', 'REKSADANA', 'INVESTASI', 'DEPOSITO', 'TANAH', 'PROPERTY'];
 
   // --- 1. INITIAL LOAD ---
   window.onload = function () {
@@ -28,7 +29,7 @@
     }).getInitData();
   }
 
-  // --- 3. RENDER APLIKASI (INTI LOGIKA) ---
+  // --- 3. RENDER APLIKASI (LOGIKA PORTOFOLIO DARI SALDO) ---
   function renderApp(response) {
     globalData = response.transactions;
     globalSources = response.sources;
@@ -36,18 +37,22 @@
 
     setupDropdowns(globalSources);
 
-    let totalInc = 0, totalExp = 0, totalAsset = 0, totalAssetReturn = 0;
-    let catIncData = {}, catExpData = {}, portfolioAlloc = {};
-    let assetData = [];
+    let totalInc = 0, totalExp = 0, totalAssetReturn = 0;
+    let catIncData = {}, catExpData = {};
+
+    // Variabel Baru untuk Portfolio Berbasis Saldo
+    let realTimeAssetValue = 0;
+    let portfolioAlloc = {};
+    let assetTransHistory = []; // Untuk Chart Garis (History)
 
     let now = new Date();
-    // Filter Data Dashboard (Bulan Ini Saja)
+
+    // --- 1. HITUNG DASHBOARD (CASHFLOW) ---
     let dashboardData = globalData.filter(r => {
       let d = new Date(r.date);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
 
-    // 1. Hitung Dashboard
     dashboardData.forEach(r => {
       if (r.type === 'Income') {
         totalInc += r.amount;
@@ -58,38 +63,62 @@
       }
     });
 
-    // 2. Hitung Aset (Logic Baru: Lebih Fleksibel)
-    globalData.forEach(r => {
-      // Ubah kategori jadi huruf besar semua biar gampang dicek
-      let catUpper = (r.category || "").toUpperCase();
+    // --- 2. HITUNG PORTOFOLIO (LOGIKA BARU: BERDASARKAN SALDO AKUN) ---
+    // Kita cek semua akun yang ada (Bank/Wallet/Tunai)
+    // Jika namanya mengandung PLUANG, PEGADAIAN, atau keyword ASET, kita anggap itu ASET.
 
-      // Cek apakah kategori mengandung kata kunci Aset (misal: "Beli Saham" -> contains "SAHAM")
-      let isAsset = ASSET_KEYWORDS.some(keyword => catUpper.includes(keyword));
-      let isDividen = catUpper.includes('DIVIDEN') || catUpper.includes('RETURN');
+    let allAccounts = [...globalSources.banks, ...globalSources.wallets, ...globalSources.cash];
 
-      if (isAsset || isDividen) {
-        assetData.push(r);
+    allAccounts.forEach(acc => {
+      let accNameUpper = acc.name.toUpperCase();
+      let currentBalance = globalBalances[acc.name] || 0;
 
-        // Jika Pengeluaran -> Berarti Beli Aset (Nilai Aset Tambah)
-        if (r.type === 'Expense') {
-          totalAsset += r.amount;
-          portfolioAlloc[r.category] = (portfolioAlloc[r.category] || 0) + r.amount;
-        }
-        // Jika Pemasukan -> Berarti Dividen/Profit
-        else if (r.type === 'Income') {
-          totalAssetReturn += r.amount;
-        }
+      // Cek apakah akun ini adalah Aset?
+      let isAssetAccount =
+        accNameUpper.includes('PLUANG') ||
+        accNameUpper.includes('PEGADAIAN') ||
+        accNameUpper.includes('INVEST') ||
+        accNameUpper.includes('RDI') ||
+        accNameUpper.includes('BIBIT') ||
+        accNameUpper.includes('STOCKBIT');
+
+      if (isAssetAccount && currentBalance > 0) {
+        // Tambahkan ke Total Aset (Real-time)
+        realTimeAssetValue += currentBalance;
+
+        // Masukkan ke Pie Chart Alokasi
+        portfolioAlloc[acc.name] = currentBalance;
       }
     });
 
-    // Render Text Dashboard
+    // --- 3. AMBIL HISTORY TRANSAKSI UNTUK CHART GARIS (Flow) ---
+    // Chart garis tetap butuh data transaksi untuk melihat kapan beli/dapat return
+    globalData.forEach(r => {
+      let catUpper = (r.category || "").toUpperCase();
+      let sourceUpper = (r.source || "").toUpperCase();
+
+      let isAssetTrans =
+        ASSET_KEYWORDS.some(k => catUpper.includes(k)) ||
+        sourceUpper.includes('PLUANG') ||
+        sourceUpper.includes('PEGADAIAN');
+
+      let isDividen = catUpper.includes('DIVIDEN') || catUpper.includes('RETURN');
+
+      if (isAssetTrans || isDividen) {
+        assetTransHistory.push(r);
+        if (r.type === 'Income') totalAssetReturn += r.amount;
+      }
+    });
+
+    // --- RENDER KE TAMPILAN ---
+
+    // Dashboard
     document.getElementById('txtInc').innerText = formatRp(totalInc);
     document.getElementById('txtExp').innerText = formatRp(totalExp);
     document.getElementById('txtBal').innerText = formatRp(totalInc - totalExp);
-
     renderAllCharts(dashboardData, catIncData, catExpData);
 
-    // Render Tabel Recent Dashboard
+    // Tabel Recent
     let htmlRec = '';
     dashboardData.slice(0, 5).forEach((r, idx) => {
       let badge = r.type === 'Income' ? 'success' : (r.type === 'Transfer' ? 'secondary' : 'danger');
@@ -97,13 +126,16 @@
     });
     document.getElementById('tblRecent').innerHTML = htmlRec;
 
-    // Render Halaman Aset
-    document.getElementById('txtAssetTotal').innerText = formatRp(totalAsset);
+    // Halaman Portfolio
+    // Total Asset sekarang mengambil dari SALDO REAL-TIME, bukan total beli
+    document.getElementById('txtAssetTotal').innerText = formatRp(realTimeAssetValue);
     document.getElementById('txtAssetReturn').innerText = formatRp(totalAssetReturn);
-    renderAssetCharts(assetData, portfolioAlloc);
-    renderAssetTable(assetData);
 
-    // Render Halaman Report & Saldo
+    // Render Chart Aset (Pie Chart pakai Saldo, Line Chart pakai History)
+    renderAssetCharts(assetTransHistory, portfolioAlloc);
+    renderAssetTable(assetTransHistory);
+
+    // Halaman Report & Saldo
     renderTableFull(globalData);
     renderSaldoPage(globalBalances);
   }
@@ -284,24 +316,250 @@
   // --- CHART HELPERS ---
   const COLORS = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#e67e22', '#1abc9c', '#34495e', '#7f8c8d', '#c0392b', '#d35400', '#27ae60', '#2980b9'];
   function renderAllCharts(data, catInc, catExp) {
-    let sortData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
-    const ctxLine = document.getElementById('chartLine').getContext('2d'); if (chartLine) chartLine.destroy();
-    chartLine = new Chart(ctxLine, { type: 'line', data: { labels: sortData.map(d => formatDate(d.date)), datasets: [{ label: 'Cash Flow', data: sortData.map(d => d.type === 'Income' ? d.amount : -d.amount), borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.2)', tension: 0.4, fill: true, pointRadius: 4, pointHoverRadius: 7 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: { label: function (c) { return formatRp(c.raw); } } } }, scales: { y: { beginAtZero: false } } } });
+    // 1. GROUPING DATA PER TANGGAL (AGREGASI)
+    let dailyCashflow = {};
+
+    data.forEach(r => {
+      // Ambil format YYYY-MM-DD sebagai Key agar unik & mudah disortir
+      let d = new Date(r.date);
+      let key = d.toISOString().split('T')[0];
+
+      if (!dailyCashflow[key]) dailyCashflow[key] = 0;
+
+      // Jika Income tambah, Jika Expense kurang
+      if (r.type === 'Income') {
+        dailyCashflow[key] += r.amount;
+      } else {
+        dailyCashflow[key] -= r.amount;
+      }
+    });
+
+    // 2. URUTKAN TANGGAL & SIAPKAN ARRAY CHART
+    let sortedKeys = Object.keys(dailyCashflow).sort();
+    let labels = sortedKeys.map(k => formatDate(k)); // Ubah jadi "29 Jan"
+    let values = sortedKeys.map(k => dailyCashflow[k]);
+
+    // 3. RENDER CHART LINE DASHBOARD
+    const ctxLine = document.getElementById('chartLine').getContext('2d');
+    if (chartLine) chartLine.destroy();
+
+    chartLine = new Chart(ctxLine, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Cash Flow Harian',
+          data: values,
+          borderColor: '#3498db',
+          backgroundColor: 'rgba(52, 152, 219, 0.2)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false }, // Hover lebih gampang
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: function (c) { return formatRp(c.raw); } }
+          }
+        },
+        scales: { y: { beginAtZero: false } }
+      }
+    });
+
+    // --- CHART DONUT (TIDAK PERLU DIUBAH) ---
     const ctxInc = document.getElementById('donutIncome').getContext('2d'); if (chartInc) chartInc.destroy();
     chartInc = new Chart(ctxInc, { type: 'doughnut', data: { labels: Object.keys(catInc), datasets: [{ data: Object.values(catInc), backgroundColor: COLORS }] }, options: { maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom' } } } });
     const ctxExp = document.getElementById('donutExpense').getContext('2d'); if (chartExp) chartExp.destroy();
     chartExp = new Chart(ctxExp, { type: 'doughnut', data: { labels: Object.keys(catExp), datasets: [{ data: Object.values(catExp), backgroundColor: COLORS }] }, options: { maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom' } } } });
   }
   function renderAssetCharts(assetData, alloc) {
-    let buyData = assetData.filter(r => r.type === 'Expense').sort((a, b) => new Date(a.date) - new Date(b.date));
-    const ctxBar = document.getElementById('chartAssetBar').getContext('2d'); if (chartAssetBar) chartAssetBar.destroy();
-    chartAssetBar = new Chart(ctxBar, { type: 'bar', data: { labels: buyData.map(r => formatDate(r.date)), datasets: [{ label: 'Beli', data: buyData.map(r => r.amount), backgroundColor: '#f1c40f', borderRadius: 4 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
-    const ctxPie = document.getElementById('chartAssetPie').getContext('2d'); if (chartAssetPie) chartAssetPie.destroy();
+    // 1. GROUPING DATA PER TANGGAL (AGREGASI)
+    let dailyStats = {};
+
+    assetData.forEach(r => {
+      let d = new Date(r.date);
+      let key = d.toISOString().split('T')[0]; // Key: YYYY-MM-DD
+
+      if (!dailyStats[key]) {
+        dailyStats[key] = { buy: 0, return: 0 };
+      }
+
+      if (r.type === 'Expense') {
+        // Expense di Aset = Beli (Menambah Aset)
+        dailyStats[key].buy += r.amount;
+      } else if (r.type === 'Income') {
+        // Income di Aset = Dividen/Profit/Jual Untung
+        dailyStats[key].return += r.amount;
+      }
+    });
+
+    // 2. URUTKAN TANGGAL & SIAPKAN DATASET
+    let sortedKeys = Object.keys(dailyStats).sort();
+    let labels = sortedKeys.map(k => formatDate(k));
+
+    let dataBuy = sortedKeys.map(k => dailyStats[k].buy);
+    let dataReturn = sortedKeys.map(k => dailyStats[k].return);
+
+    // 3. RENDER LINE CHART (GANTIKAN BAR CHART LAMA)
+    const ctxChart = document.getElementById('chartAssetBar').getContext('2d');
+
+    // Hapus chart lama kalau ada
+    if (chartAssetBar) chartAssetBar.destroy();
+
+    chartAssetBar = new Chart(ctxChart, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Pembelian (Invest)',
+            data: dataBuy,
+            borderColor: '#f1c40f', // Kuning Emas
+            backgroundColor: 'rgba(241, 196, 15, 0.1)',
+            tension: 0.3,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 8,
+            fill: true
+          },
+          {
+            label: 'Return (Cuan)',
+            data: dataReturn,
+            borderColor: '#2ecc71', // Hijau Profit
+            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+            tension: 0.3,
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 8,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',   // Muncul dua-duanya saat hover
+          intersect: false // Hover gak perlu kena titik pas
+        },
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: { label: function (c) { return c.dataset.label + ': ' + formatRp(c.raw); } }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    // --- CHART PIE (ALOKASI) - TETAP SAMA ---
+    const ctxPie = document.getElementById('chartAssetPie').getContext('2d');
+    if (chartAssetPie) chartAssetPie.destroy();
     chartAssetPie = new Chart(ctxPie, { type: 'doughnut', data: { labels: Object.keys(alloc), datasets: [{ data: Object.values(alloc), backgroundColor: COLORS, borderWidth: 2 }] }, options: { maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom' } } } });
+  }
+
+  function renderReportChart(dataArray) {
+    // 1. Siapkan Wadah Data
+    let monthlyData = {};
+
+    // 2. Sorting Data
+    let sortedData = [...dataArray].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // 3. Grouping Data
+    sortedData.forEach(r => {
+      let d = new Date(r.date);
+      let monthKey = d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+
+      if (!monthlyData[monthKey]) { monthlyData[monthKey] = { income: 0, expense: 0 }; }
+
+      if (r.type === 'Income') { monthlyData[monthKey].income += r.amount; }
+      else if (r.type === 'Expense') { monthlyData[monthKey].expense += r.amount; }
+    });
+
+    let labels = Object.keys(monthlyData);
+    let dataIncome = labels.map(k => monthlyData[k].income);
+    let dataExpense = labels.map(k => monthlyData[k].expense);
+
+    // 4. Render Chart
+    const ctx = document.getElementById('chartReportLine').getContext('2d');
+    if (chartReportLine) chartReportLine.destroy();
+
+    chartReportLine = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Pemasukan',
+            data: dataIncome,
+            borderColor: '#2ecc71',
+            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+            borderWidth: 3,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 8, // Titik membesar saat di-hover
+            fill: true
+          },
+          {
+            label: 'Pengeluaran',
+            data: dataExpense,
+            borderColor: '#e74c3c',
+            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+            borderWidth: 3,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 8, // Titik membesar saat di-hover
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+
+        // --- PERBAIKAN HOVER DISINI ---
+        interaction: {
+          mode: 'index',   // Menampilkan tooltip Pemasukan & Pengeluaran sekaligus
+          intersect: false // PENTING: Mouse tidak harus kena titik pas, cukup di areanya
+        },
+        // ------------------------------
+
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            backgroundColor: 'rgba(44, 62, 80, 0.9)', // Warna tooltip lebih gelap
+            padding: 10,
+            cornerRadius: 8,
+            callbacks: {
+              label: function (context) {
+                return context.dataset.label + ': ' + formatRp(context.raw);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
   }
 
   function renderTableFull(dataArray) {
     let tbody = document.querySelector('#tblFull tbody'); let msg = document.getElementById('noDataMsg'); tbody.innerHTML = '';
+    renderReportChart(dataArray);
     if (dataArray.length === 0) { msg.style.display = 'block'; return; } msg.style.display = 'none';
     let htmlFull = '';
     dataArray.forEach((r, idx) => {

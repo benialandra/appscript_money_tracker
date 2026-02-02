@@ -203,7 +203,7 @@ function updateSaldoAwal(accountName, newAmount) {
 function tambahAkunBaru(nama, tipe, saldoAwal) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheetName = "";
-  
+
   // Tentukan Sheet Tujuan
   if (tipe === "Bank") sheetName = "Bank";
   else if (tipe === "E-Wallet") sheetName = "ewallet";
@@ -223,6 +223,6 @@ function tambahAkunBaru(nama, tipe, saldoAwal) {
 
   // Tambahkan Baris Baru
   sheet.appendRow([nama, saldoAwal]);
-  
+
   return "Berhasil menambahkan " + nama;
 }

@@ -322,29 +322,34 @@
       </div>
 
       <div id="page-report" class="page-section d-none">
-        <h3 class="mb-4">Laporan Lengkap</h3>
+        <h3 class="mb-4">Report Arus Kas</h3>
+
         <div class="card shadow-sm border-0 p-4 mb-3" style="border-radius: 12px;">
           <div class="row align-items-end g-3">
             <div class="col-md-3"><label class="text-muted small mb-1">Dari Tanggal</label><input type="date"
-                id="filterStart" class="form-control">
-            </div>
+                id="filterStart" class="form-control"></div>
             <div class="col-md-3"><label class="text-muted small mb-1">Sampai Tanggal</label><input type="date"
-                id="filterEnd" class="form-control">
-            </div>
-            <div class="col-md-3">
-              <label class="text-muted small mb-1">Tipe</label><select id="filterType" class="form-select">
+                id="filterEnd" class="form-control"></div>
+            <div class="col-md-3"><label class="text-muted small mb-1">Tipe</label><select id="filterType"
+                class="form-select">
                 <option value="All">Semua</option>
                 <option value="Income">Pemasukan</option>
                 <option value="Expense">Pengeluaran</option>
-              </select>
-            </div>
+              </select></div>
             <div class="col-md-3">
-              <div class="d-flex gap-2">
-                <button onclick="applyFilter()" class="btn btn-primary w-100"><i
+              <div class="d-flex gap-2"><button onclick="applyFilter()" class="btn btn-primary w-100"><i
                     class="fas fa-filter me-2"></i>Filter</button><button onclick="resetFilter()"
-                  class="btn btn-outline-secondary"><i class="fas fa-sync"></i></button>
-              </div>
+                  class="btn btn-outline-secondary"><i class="fas fa-sync"></i></button></div>
             </div>
+          </div>
+        </div>
+
+        <div class="card shadow border-0 p-3 mb-3" style="border-radius: 12px;">
+          <h6 class="text-muted fw-bold ms-2 mb-3">
+            <i class="fas fa-chart-line me-2"></i>Trend Arus Kas Bulanan
+          </h6>
+          <div class="chart-box" style="height: 300px; position: relative;">
+            <canvas id="chartReportLine"></canvas>
           </div>
         </div>
         <div class="card shadow border-0 p-3" style="border-radius: 12px;">
@@ -367,6 +372,7 @@
           <div id="noDataMsg" class="text-center p-3 text-muted" style="display:none;">Tidak ada data pada periode ini
           </div>
         </div>
+
       </div>
 
       <div id="page-profile" class="page-section d-none">
