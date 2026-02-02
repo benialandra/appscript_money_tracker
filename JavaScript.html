@@ -1,0 +1,398 @@
+<script>
+  // --- VARIABEL GLOBAL ---
+  var globalData = []; 
+  var globalSources = { banks: [], wallets: [], cash: [] }; 
+  var globalBalances = {}; 
+  var chartLine, chartInc, chartExp, chartAssetBar, chartAssetPie;
+
+  // --- DAFTAR KATA KUNCI ASET (Perbaikan Logic) ---
+  // Script akan mencari kategori yang MENGANDUNG kata-kata ini
+  const ASSET_KEYWORDS = ['EMAS', 'GOLD', 'CRYPTO', 'BITCOIN', 'SAHAM', 'STOCK', 'REKSADANA', 'INVESTASI', 'DEPOSITO', 'TANAH', 'PROPERTY'];
+
+  // --- 1. INITIAL LOAD ---
+  window.onload = function() {
+    if (sessionStorage.getItem('isLoggedIn') === 'true') {
+      showApp();
+    } else {
+      showLogin();
+    }
+  };
+
+  // --- 2. REFRESH DATA ---
+  function refreshData(isSilent = false) {
+    if (!isSilent) document.getElementById('loader').style.display = 'flex';
+    
+    google.script.run.withSuccessHandler(function(response) {
+       renderApp(response);
+       if (!isSilent) document.getElementById('loader').style.display = 'none';
+    }).getInitData();
+  }
+
+  // --- 3. RENDER APLIKASI (INTI LOGIKA) ---
+  function renderApp(response) {
+    globalData = response.transactions; 
+    globalSources = response.sources; 
+    globalBalances = response.finalBalances;
+
+    setupDropdowns(globalSources);
+
+    let totalInc=0, totalExp=0, totalAsset=0, totalAssetReturn=0;
+    let catIncData={}, catExpData={}, portfolioAlloc={};
+    let assetData=[];
+    
+    let now = new Date();
+    // Filter Data Dashboard (Bulan Ini Saja)
+    let dashboardData = globalData.filter(r => { 
+        let d = new Date(r.date); 
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); 
+    });
+
+    // 1. Hitung Dashboard
+    dashboardData.forEach(r => { 
+        if(r.type === 'Income') { 
+            totalInc += r.amount; 
+            catIncData[r.category] = (catIncData[r.category] || 0) + r.amount; 
+        } else if (r.type === 'Expense') { 
+            totalExp += r.amount; 
+            catExpData[r.category] = (catExpData[r.category] || 0) + r.amount; 
+        } 
+    });
+
+    // 2. Hitung Aset (Logic Baru: Lebih Fleksibel)
+    globalData.forEach(r => { 
+        // Ubah kategori jadi huruf besar semua biar gampang dicek
+        let catUpper = (r.category || "").toUpperCase();
+        
+        // Cek apakah kategori mengandung kata kunci Aset (misal: "Beli Saham" -> contains "SAHAM")
+        let isAsset = ASSET_KEYWORDS.some(keyword => catUpper.includes(keyword));
+        let isDividen = catUpper.includes('DIVIDEN') || catUpper.includes('RETURN');
+
+        if(isAsset || isDividen) { 
+            assetData.push(r); 
+            
+            // Jika Pengeluaran -> Berarti Beli Aset (Nilai Aset Tambah)
+            if(r.type === 'Expense') { 
+                totalAsset += r.amount; 
+                portfolioAlloc[r.category] = (portfolioAlloc[r.category] || 0) + r.amount; 
+            } 
+            // Jika Pemasukan -> Berarti Dividen/Profit
+            else if (r.type === 'Income') { 
+                totalAssetReturn += r.amount; 
+            } 
+        } 
+    });
+
+    // Render Text Dashboard
+    document.getElementById('txtInc').innerText = formatRp(totalInc);
+    document.getElementById('txtExp').innerText = formatRp(totalExp);
+    document.getElementById('txtBal').innerText = formatRp(totalInc - totalExp);
+    
+    renderAllCharts(dashboardData, catIncData, catExpData);
+    
+    // Render Tabel Recent Dashboard
+    let htmlRec = '';
+    dashboardData.slice(0, 5).forEach((r, idx) => { 
+        let badge = r.type === 'Income' ? 'success' : (r.type === 'Transfer' ? 'secondary' : 'danger'); 
+        htmlRec += `<tr><td>${idx+1}</td><td>${formatDate(r.date)}</td><td><span class="badge bg-${badge} rounded-pill">${r.type}</span></td><td>${r.source}</td><td>${r.desc}</td><td class="fw-bold">${formatRp(r.amount)}</td></tr>`; 
+    });
+    document.getElementById('tblRecent').innerHTML = htmlRec;
+
+    // Render Halaman Aset
+    document.getElementById('txtAssetTotal').innerText = formatRp(totalAsset);
+    document.getElementById('txtAssetReturn').innerText = formatRp(totalAssetReturn);
+    renderAssetCharts(assetData, portfolioAlloc);
+    renderAssetTable(assetData); 
+    
+    // Render Halaman Report & Saldo
+    renderTableFull(globalData); 
+    renderSaldoPage(globalBalances);
+  }
+
+  // --- 4. HANDLE SIMPAN (DENGAN VALIDASI SALDO) ---
+  function handleSimpan(e) { 
+    e.preventDefault(); 
+    
+    let mode = document.getElementById('inputMode').value;
+    let inputJml = document.getElementById('inputJumlah'); 
+    let originalValue = inputJml.value; 
+    let nominal = Number(originalValue.replace(/\./g, "").replace(/,/g, "")); 
+    
+    // Validasi Saldo
+    let sumberAkun = "";
+    let isPengeluaran = false;
+
+    if (mode === 'transfer') {
+      sumberAkun = document.getElementById('sumberTfSel').value;
+      isPengeluaran = true;
+    } else {
+      sumberAkun = document.getElementById('sumberSel').value;
+      let tipe = document.getElementById('tipeSel').value;
+      if (tipe === 'Expense') isPengeluaran = true;
+    }
+
+    if (isPengeluaran && sumberAkun) {
+       let saldoSaatIni = globalBalances[sumberAkun] || 0;
+       if (nominal > saldoSaatIni) {
+         Swal.fire({
+           icon: 'error', title: 'Saldo Tidak Cukup!',
+           html: `Saldo <b>${sumberAkun}</b>: <span class="text-danger fw-bold">${formatRp(saldoSaatIni)}</span><br>Input: <b>${formatRp(nominal)}</b>`,
+           confirmButtonColor: '#d33'
+         });
+         return;
+       }
+    }
+
+    let btn = document.getElementById('btnSimpan');
+    let oriText = btn.innerHTML;
+    inputJml.value = nominal; 
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
+
+    google.script.run.withSuccessHandler(function(res) {
+         btn.disabled = false; btn.innerHTML = oriText;
+         Swal.fire({ title: 'Berhasil!', text: 'Data tersimpan.', icon: 'success', timer: 1500, showConfirmButton: false }); 
+         document.getElementById('formInput').reset(); 
+         document.querySelector('input[name="tanggal"]').valueAsDate = new Date(); 
+         switchPage('dashboard', null); 
+         refreshData(true); 
+      }).withFailureHandler(function(error) { 
+         btn.disabled = false; btn.innerHTML = oriText; inputJml.value = originalValue; 
+         Swal.fire({ title: 'Gagal!', text: 'Error: ' + error.message, icon: 'error' }); 
+      }).simpanData(document.getElementById('formInput')); 
+  }
+
+  // --- 5. FUNGSI PENDUKUNG LAINNYA ---
+  function handleUpdateSaldo(e) { 
+    e.preventDefault(); 
+    let akun = document.getElementById('updateAkunSel').value; 
+    let nominal = Number(document.getElementById('updateNominal').value.replace(/\./g, "").replace(/,/g, "")); 
+    Swal.fire({ title: 'Update Modal...', didOpen: () => Swal.showLoading() }); 
+    google.script.run.withSuccessHandler(function(res) { 
+         Swal.fire('Berhasil', 'Modal Awal diupdate!', 'success'); 
+         document.getElementById('updateNominal').value = ''; 
+         toggleSaldoForm(); refreshData(true); 
+    }).withFailureHandler(function(err) { Swal.fire('Gagal', err.message, 'error'); }).updateSaldoAwal(akun, nominal); 
+  }
+
+  function showLogin() { document.getElementById('login-container').style.display = 'flex'; document.getElementById('app-container').style.display = 'none'; }
+  function showApp() {
+    document.getElementById('login-container').style.display = 'none';
+    document.getElementById('app-container').style.display = 'block';
+    let currentUser = sessionStorage.getItem('username') || '';
+    if(document.getElementById('oldUser')) document.getElementById('oldUser').value = currentUser;
+    if(document.getElementById('newUser')) document.getElementById('newUser').value = currentUser;
+    if(globalData.length === 0) {
+      updateKat();
+      document.querySelector('input[name="tanggal"]').valueAsDate = new Date();
+      let now = new Date();
+      document.getElementById('periodeBadge').innerHTML = '<i class="far fa-calendar-alt me-2"></i>' + now.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+      refreshData(false); 
+    }
+  }
+
+  function handleLogin(e) {
+    e.preventDefault();
+    let u = document.getElementById('uName').value; let p = document.getElementById('uPass').value;
+    let btn = e.target.querySelector('button'); let oriText = btn.innerText; 
+    btn.disabled = true; btn.innerText = "Checking...";
+    google.script.run.withSuccessHandler(function(res) {
+         btn.disabled = false; btn.innerText = oriText;
+         if(res.success) {
+           sessionStorage.setItem('isLoggedIn', 'true'); sessionStorage.setItem('username', u);
+           Swal.fire({ icon: 'success', title: 'Login Berhasil', timer: 1000, showConfirmButton: false }).then(() => showApp());
+         } else { Swal.fire('Login Gagal', res.message, 'error'); }
+      }).withFailureHandler(function(err){ btn.disabled = false; btn.innerText = oriText; Swal.fire('Error', err.message, 'error'); }).loginUser(u, p);
+  }
+
+  function doLogout() {
+    Swal.fire({ title: 'Logout?', text: "Keluar aplikasi", icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya', cancelButtonText: 'Batal' }).then((result) => {
+      if (result.isConfirmed) {
+        sessionStorage.clear(); document.getElementById('uName').value = ''; document.getElementById('uPass').value = '';
+        globalData = []; showLogin();
+      }
+    });
+  }
+
+  function handleUpdateProfile(e) {
+    e.preventDefault();
+    let oldUser = document.getElementById('oldUser').value; let oldPass = e.target.oldPass.value;
+    let newUser = e.target.newUser.value; let newPass = e.target.newPass.value;
+    Swal.fire({ title: 'Updating...', didOpen: () => Swal.showLoading() });
+    google.script.run.withSuccessHandler(function(res) {
+         if(res.success) {
+           Swal.fire({ title: 'Berhasil!', text: res.message, icon: 'success' }).then(() => {
+              sessionStorage.clear(); globalData = [];
+              document.getElementById('uName').value = ''; document.getElementById('uPass').value = '';
+              document.getElementById('formProfile').reset(); showLogin();
+           });
+         } else { Swal.fire('Gagal', res.message, 'error'); }
+      }).withFailureHandler(function(err) { Swal.fire('Error', err.message, 'error'); }).updateUserProfile(oldUser, oldPass, newUser, newPass);
+  }
+
+  function handleForgotPass(e) { e.preventDefault(); Swal.fire({ icon: 'info', title: 'Lupa Password?', html: `<p class="text-muted">Hubungi Administrator.</p><div class="alert alert-warning small mt-3 text-start"><i class="fas fa-key me-2"></i><b>Admin Info:</b><br>Cek Google Sheet, tab <b>'user'</b> kolom A dan B.</div>`, confirmButtonText: 'Mengerti', confirmButtonColor: '#2c3e50' }); }
+
+  function switchPage(page, el) {
+    document.querySelectorAll('.page-section').forEach(p => p.classList.add('d-none'));
+    document.getElementById('page-' + page).classList.remove('d-none');
+    if(el) { document.querySelectorAll('.list-group-item').forEach(n => n.classList.remove('active')); el.classList.add('active'); }
+    if (window.innerWidth < 768) { document.getElementById("wrapper").classList.remove("toggled"); }
+  }
+  
+  function setMode(mode) {
+      document.getElementById('inputMode').value = mode;
+      if(mode === 'transaksi') {
+        document.getElementById('block-transaksi').style.display = 'block'; document.getElementById('block-transfer').style.display = 'none';
+        document.getElementById('tab-transaksi').classList.add('active', 'bg-white', 'shadow-sm', 'text-primary'); document.getElementById('tab-transfer').classList.remove('active', 'bg-white', 'shadow-sm', 'text-primary');
+        document.getElementById('sumberSel').required = true; document.getElementById('sumberTfSel').required = false; document.getElementById('tujuanTfSel').required = false;
+      } else {
+        document.getElementById('block-transaksi').style.display = 'none'; document.getElementById('block-transfer').style.display = 'block';
+        document.getElementById('tab-transfer').classList.add('active', 'bg-white', 'shadow-sm', 'text-primary'); document.getElementById('tab-transaksi').classList.remove('active', 'bg-white', 'shadow-sm', 'text-primary');
+        document.getElementById('sumberSel').required = false; document.getElementById('sumberTfSel').required = true; document.getElementById('tujuanTfSel').required = true;
+      }
+  }
+
+  function toggleSaldoForm() { let p = document.getElementById('panelSaldoSetting'); p.style.display = (p.style.display === 'none') ? 'block' : 'none'; }
+
+  function setupDropdowns(sources) {
+      let sel = document.getElementById('sumberSel'); let selUpdate = document.getElementById('updateAkunSel'); 
+      let selAsal = document.getElementById('sumberTfSel'); let selTujuan = document.getElementById('tujuanTfSel');
+      let oldVal = sel.value;
+      sel.innerHTML = '<option value="">Pilih Sumber...</option>'; selUpdate.innerHTML = ''; selAsal.innerHTML = '<option value="">Sumber...</option>'; selTujuan.innerHTML = '<option value="">Tujuan...</option>';
+      function addOption(grpName, items) { if(items.length > 0) {
+            let grp = document.createElement('optgroup'); grp.label = grpName; let grp2 = document.createElement('optgroup'); grp2.label = grpName; let grp3 = document.createElement('optgroup'); grp3.label = grpName;
+            items.forEach(b => {
+                let o = document.createElement('option'); o.value = b.name; o.text = b.name; grp.appendChild(o);
+                let o2 = document.createElement('option'); o2.value = b.name; o2.text = b.name; selUpdate.add(o2);
+                let o3 = document.createElement('option'); o3.value = b.name; o3.text = b.name; grp2.appendChild(o3);
+                let o4 = document.createElement('option'); o4.value = b.name; o4.text = b.name; grp3.appendChild(o4);
+            });
+            sel.appendChild(grp); selAsal.appendChild(grp2); selTujuan.appendChild(grp3);
+      }}
+      addOption("Bank", sources.banks); addOption("E-Wallet", sources.wallets); addOption("Tunai", sources.cash); 
+      if(oldVal) sel.value = oldVal;
+  }
+
+  function renderSaldoPage(balances) {
+      let containerBank = document.getElementById('container-bank'); let containerWallet = document.getElementById('container-wallet'); containerBank.innerHTML = ''; containerWallet.innerHTML = ''; let totalAll = 0;
+      function renderGroup(items, container, icon, cls) { if(items) items.forEach(b => { let saldo = balances[b.name] || 0; totalAll += saldo; container.innerHTML += createSaldoCard(b.name, saldo, icon, cls); }); }
+      renderGroup(globalSources.banks, containerBank, 'fa-university', 'card-bank'); renderGroup(globalSources.wallets, containerWallet, 'fa-wallet', 'card-wallet'); renderGroup(globalSources.cash, containerWallet, 'fa-money-bill-wave', 'card-wallet');
+      document.getElementById('txtTotalSaldoAll').innerText = formatRp(totalAll);
+  }
+  function createSaldoCard(name, amount, icon, cardClass = 'card-bank') { let color = amount >= 0 ? 'text-success' : 'text-danger'; return `<div class="card ${cardClass} mb-3 p-3"><div class="d-flex justify-content-between align-items-center"><div class="d-flex align-items-center"><div class="bg-light rounded-circle p-2 me-3" style="width:45px;height:45px;display:flex;align-items:center;justify-content:center;"><i class="fas ${icon} fa-lg text-secondary"></i></div><div><h6 class="mb-0 fw-bold">${name}</h6></div></div><h5 class="fw-bold mb-0 ${color}">${formatRp(amount)}</h5></div></div>`; }
+  
+  // --- CHART HELPERS ---
+  const COLORS = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#e67e22', '#1abc9c', '#34495e', '#7f8c8d', '#c0392b', '#d35400', '#27ae60', '#2980b9'];
+  function renderAllCharts(data, catInc, catExp) { 
+      let sortData = [...data].sort((a,b) => new Date(a.date) - new Date(b.date)); 
+      const ctxLine = document.getElementById('chartLine').getContext('2d'); if(chartLine) chartLine.destroy(); 
+      chartLine = new Chart(ctxLine, { type: 'line', data: { labels: sortData.map(d => formatDate(d.date)), datasets: [{ label: 'Cash Flow', data: sortData.map(d => d.type==='Income'?d.amount:-d.amount), borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.2)', tension: 0.4, fill: true, pointRadius: 4, pointHoverRadius: 7 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: {display:false}, tooltip: { enabled: true, callbacks: { label: function(c) { return formatRp(c.raw); } } } }, scales: { y: { beginAtZero: false } } } }); 
+      const ctxInc = document.getElementById('donutIncome').getContext('2d'); if(chartInc) chartInc.destroy(); 
+      chartInc = new Chart(ctxInc, { type: 'doughnut', data: { labels: Object.keys(catInc), datasets: [{ data: Object.values(catInc), backgroundColor: COLORS }] }, options: { maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom' } } } }); 
+      const ctxExp = document.getElementById('donutExpense').getContext('2d'); if(chartExp) chartExp.destroy(); 
+      chartExp = new Chart(ctxExp, { type: 'doughnut', data: { labels: Object.keys(catExp), datasets: [{ data: Object.values(catExp), backgroundColor: COLORS }] }, options: { maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom' } } } }); 
+  }
+  function renderAssetCharts(assetData, alloc) { 
+      let buyData = assetData.filter(r => r.type === 'Expense').sort((a,b) => new Date(a.date) - new Date(b.date)); 
+      const ctxBar = document.getElementById('chartAssetBar').getContext('2d'); if(chartAssetBar) chartAssetBar.destroy(); 
+      chartAssetBar = new Chart(ctxBar, { type: 'bar', data: { labels: buyData.map(r => formatDate(r.date)), datasets: [{ label: 'Beli', data: buyData.map(r => r.amount), backgroundColor: '#f1c40f', borderRadius: 4 }] }, options: { maintainAspectRatio: false, plugins: { legend: {display:false} } } }); 
+      const ctxPie = document.getElementById('chartAssetPie').getContext('2d'); if(chartAssetPie) chartAssetPie.destroy(); 
+      chartAssetPie = new Chart(ctxPie, { type: 'doughnut', data: { labels: Object.keys(alloc), datasets: [{ data: Object.values(alloc), backgroundColor: COLORS, borderWidth: 2 }] }, options: { maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom' } } } }); 
+  }
+
+  function renderTableFull(dataArray) { 
+      let tbody = document.querySelector('#tblFull tbody'); let msg = document.getElementById('noDataMsg'); tbody.innerHTML = ''; 
+      if(dataArray.length === 0) { msg.style.display = 'block'; return; } msg.style.display = 'none'; 
+      let htmlFull = ''; 
+      dataArray.forEach((r, idx) => { 
+        let badge = r.type === 'Income' ? 'success' : (r.type === 'Transfer' ? 'secondary' : 'danger');
+        htmlFull += `<tr><td>${idx+1}</td><td>${formatDate(r.date)}</td><td><span class="badge bg-${badge} rounded-pill">${r.type}</span></td><td>${r.source}</td><td>${r.category}</td><td>${r.desc}</td><td>${formatRp(r.amount)}</td></tr>`; 
+      }); 
+      tbody.innerHTML = htmlFull; 
+  }
+  function renderAssetTable(assetData) { 
+      let tbody = document.getElementById('tblAsset'); let html = ''; 
+      let sorted = [...assetData].sort((a,b) => new Date(b.date) - new Date(a.date)); 
+      sorted.forEach((r, idx) => { 
+         let isBuy = r.type === 'Expense'; let badge = isBuy ? 'warning' : 'success'; 
+         html += `<tr><td>${idx+1}</td><td>${formatDate(r.date)}</td><td><span class="badge bg-${badge} text-dark">${r.category}</span></td><td>${r.source}</td><td class="${isBuy?'text-dark':'text-success fw-bold'}">${formatRp(r.amount)}</td></tr>`; 
+      }); 
+      tbody.innerHTML = html.length ? html : '<tr><td colspan="5" class="text-center">Belum ada data</td></tr>'; 
+  }
+  
+  function applyFilter() { 
+     let startStr = document.getElementById('filterStart').value; let endStr = document.getElementById('filterEnd').value; let typeVal = document.getElementById('filterType').value; 
+     if(!startStr || !endStr) { Swal.fire('Info', 'Pilih Tanggal Awal dan Akhir dulu!', 'info'); return; } 
+     let filtered = globalData.filter(i => { let d = i.date.substring(0, 10); let dateMatch = d >= startStr && d <= endStr; let typeMatch = (typeVal === "All") ? true : (i.type === typeVal); return dateMatch && typeMatch; }); 
+     renderTableFull(filtered); 
+  }
+  function resetFilter() { document.getElementById('filterStart').value = ''; document.getElementById('filterEnd').value = ''; document.getElementById('filterType').value = 'All'; renderTableFull(globalData); }
+  function formatRupiahTyping(i) { i.value = i.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+  function updateKat() { 
+     let tipe = document.getElementById('tipeSel').value; let sel = document.getElementById('katSel'); sel.innerHTML = ''; 
+     // Tambahkan 'Investasi' di list agar user bisa pilih
+     let list = tipe === 'Income' ? ['Gaji', 'Bonus', 'Dividen', 'Crypto Gain', 'Lainnya'] : ['Makan', 'Transport', 'Belanja', 'Tagihan', 'Emas', 'Crypto', 'Saham', 'Reksadana', 'Investasi', 'Lainnya']; 
+     list.forEach(i => { let o=document.createElement('option'); o.text=i; sel.add(o); }); 
+  }
+  function formatRp(n) { return new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(n); }
+  function formatDate(s) { return new Date(s).toLocaleDateString('id-ID', {day:'numeric', month:'short'}); }
+
+  // Listeners
+  document.getElementById("menu-toggle").addEventListener("click", function(e) { e.preventDefault(); document.getElementById("wrapper").classList.toggle("toggled"); });
+  document.addEventListener('DOMContentLoaded', (event) => { const savedTheme = localStorage.getItem('theme'); const toggleBtn = document.getElementById('theme-toggle'); const icon = toggleBtn.querySelector('i'); if (savedTheme === 'dark') { document.body.classList.add('dark-mode'); icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } });
+  function toggleTheme() { const body = document.body; const toggleBtn = document.getElementById('theme-toggle'); const icon = toggleBtn.querySelector('i'); body.classList.toggle('dark-mode'); if (body.classList.contains('dark-mode')) { localStorage.setItem('theme', 'dark'); icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); } else { localStorage.setItem('theme', 'light'); icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); } }
+  /* --- FILE: JavaScript.html --- */
+
+  // FUNGSI POPUP TAMBAH AKUN
+  function showAddAccountModal() {
+    Swal.fire({
+      title: 'Tambah Akun Baru',
+      html: `
+        <div class="text-start">
+          <label class="small fw-bold text-muted mb-1">Nama Akun / Bank</label>
+          <input id="swal-input1" class="form-control mb-3" placeholder="CONTOH: BANK JAGO" 
+                 style="text-transform: uppercase;" 
+                 oninput="this.value = this.value.toUpperCase()">
+          
+          <label class="small fw-bold text-muted mb-1">Tipe</label>
+          <select id="swal-input2" class="form-select mb-3">
+            <option value="Bank">Bank</option>
+            <option value="E-Wallet">E-Wallet</option>
+            <option value="Tunai">Tunai / Tabungan Fisik</option>
+          </select>
+
+          <label class="small fw-bold text-muted mb-1">Saldo Awal (Rp)</label>
+          <input id="swal-input3" class="form-control" placeholder="0" onkeyup="formatRupiahTyping(this)">
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Simpan',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#2c3e50',
+      preConfirm: () => {
+        const nama = document.getElementById('swal-input1').value;
+        const tipe = document.getElementById('swal-input2').value;
+        const saldoStr = document.getElementById('swal-input3').value;
+        
+        if (!nama) {
+          Swal.showValidationMessage('Nama akun wajib diisi!');
+          return false;
+        }
+        return { nama: nama, tipe: tipe, saldo: Number(saldoStr.replace(/\./g, "").replace(/,/g, "")) || 0 };
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        let data = result.value;
+        Swal.fire({ title: 'Menambahkan...', didOpen: () => Swal.showLoading() });
+        
+        google.script.run
+          .withSuccessHandler(function(res) {
+             Swal.fire('Sukses!', res, 'success');
+             refreshData(true); 
+          })
+          .withFailureHandler(function(err) {
+             Swal.fire('Gagal', err.message, 'error');
+          })
+          .tambahAkunBaru(data.nama, data.tipe, data.saldo);
+      }
+    });
+  }
+</script>

@@ -1,0 +1,372 @@
+<div id="app-container">
+  <div class="d-flex" id="wrapper">
+
+    <div id="sidebar-wrapper">
+      <div class="sidebar-heading" onclick="switchPage('dashboard', null)" style="cursor: pointer;">
+        <i class="fas fa-wallet fa-4x"></i>
+        <p>Isi Dompet</p>
+      </div>
+      <div class="list-group list-group-flush">
+        <a class="list-group-item active"
+          onclick="switchPage('dashboard', this)"><i class="fas fa-home me-3"></i>Dashboard</a>
+        <a class="list-group-item" onclick="switchPage('saldo', this)"><i class="fas fa-university me-3"></i>Saldo
+          Akun</a>
+        <a class="list-group-item"
+          onclick="switchPage('asset', this)"><i class="fas fa-chart-pie me-3"></i>Portfolio</a>
+        <a class="list-group-item" onclick="switchPage('input', this)"><i class="fas fa-plus-circle me-3"></i>Input
+          Data</a>
+        <a class="list-group-item"
+          onclick="switchPage('report', this)"><i class="fas fa-file-invoice me-3"></i>Laporan</a>
+        <a class="list-group-item" onclick="switchPage('profile', this)"><i class="fas fa-user-cog me-3"></i>Profile</a>
+        <a class="list-group-item text-warning" onclick="doLogout()"><i class="fas fa-sign-out-alt me-3"></i>Logout</a>
+      </div>
+    </div>
+
+    <div id="page-content-wrapper">
+
+      <nav
+        class="navbar navbar-light bg-light border-bottom mb-4 rounded shadow-sm d-flex justify-content-between px-3">
+        <div class="d-flex align-items-center">
+          <button class="btn" id="menu-toggle"><i class="fas fa-bars"></i></button>
+          <span class="navbar-brand mb-0 h1 fw-bold ms-3 text-secondary d-md-none">Isi Dompet</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn" id="theme-toggle" onclick="toggleTheme()" title="Ganti Tema">
+            <i class="fas fa-moon"></i>
+          </button>
+
+          <button class="btn btn-primary rounded-circle d-md-none shadow-sm" onclick="switchPage('input', null)" style="width:35px;height:35px">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+      </nav>
+
+      <div id="page-dashboard" class="page-section">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h4 class="text-secondary fw-bold mb-0">Dashboard Overview</h4>
+          <span class="badge bg-primary fs-6 px-3 py-2 shadow-sm" id="periodeBadge"></span>
+        </div>
+        <div class="row g-4 mb-4">
+          <div class="col-md-4">
+            <div class="card card-stat bg-inc p-4">
+              <div>
+                <p class="mb-0 opacity-75">Pemasukan (Bulan Ini)</p>
+                <h3 class="fw-bold" id="txtInc">Rp 0</h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card card-stat bg-exp p-4">
+              <div>
+                <p class="mb-0 opacity-75">Pengeluaran (Bulan Ini)</p>
+                <h3 class="fw-bold" id="txtExp">Rp 0</h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card card-stat bg-bal p-4">
+              <div>
+                <p class="mb-0 opacity-75">Cashflow (Bulan Ini)</p>
+                <h3 class="fw-bold" id="txtBal">Rp 0</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mb-4">
+          <div class="col-6">
+            <div class="card shadow-sm border-0 p-4" style="border-radius: 12px;">
+              <h5 class="mb-3 text-secondary">Trend Harian</h5>
+              <div style="height: 300px;"><canvas id="chartLine"></canvas></div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm border-0 p-4 h-100" style="border-radius: 12px;">
+              <h5 class="mb-3 text-secondary text-success">Pemasukan</h5>
+              <div class="chart-box"><canvas id="donutIncome"></canvas></div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card shadow-sm border-0 p-4 h-100" style="border-radius: 12px;">
+              <h5 class="mb-3 text-secondary text-danger">Pengeluaran</h5>
+              <div class="chart-box"><canvas id="donutExpense"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="card shadow-sm border-0 p-4" style="border-radius: 12px;">
+              <h5 class="mb-3 text-secondary">5 Transaksi Terakhir (Bulan Ini)</h5>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width:50px;">No</th>
+                      <th>Tanggal</th>
+                      <th>Tipe</th>
+                      <th>Bank</th>
+                      <th>Keterangan</th>
+                      <th>Jumlah</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tblRecent"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-saldo" class="page-section d-none">
+        <h3 class="mb-4 text-secondary fw-bold">Saldo Rekening</h3>
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <div class="card bg-primary text-white p-4 shadow"
+              style="background: linear-gradient(135deg, #2c3e50, #4ca1af); border-radius: 15px;">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="opacity-75">Total Kas (Estimasi Real)</h5>
+                  <h1 class="fw-bold" id="txtTotalSaldoAll">Rp 0</h1><small>(Modal Awal + Transaksi)</small>
+                </div><i class="fas fa-vault fa-4x opacity-25"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="card shadow-sm border-0 p-3" style="border-radius: 12px; background-color: #fff3cd;">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div onclick="toggleSaldoForm()" style="cursor: pointer" class="d-flex align-items-center text-dark">
+                  <h6 class="mb-0 fw-bold"><i class="fas fa-cog me-2"></i>Atur Modal Awal</h6>
+                  <i class="fas fa-chevron-down ms-2"></i>
+                </div>
+                <button class="btn btn-success btn-sm rounded-pill fw-bold shadow-sm" onclick="showAddAccountModal()">
+          <i class="fas fa-plus me-1"></i> Akun Baru
+        </button>
+              </div>
+              <div id="panelSaldoSetting" style="display: none;" class="mt-3 border-top pt-3">
+                <form onsubmit="handleUpdateSaldo(event)" class="row g-2 align-items-end">
+                  <div class="col-md-5">
+                    <label class="small text-muted fw-bold">Pilih Akun</label><select id="updateAkunSel" class="form-select"></select>
+                  </div>
+                  <div class="col-md-5"><label class="small text-muted fw-bold">Set Saldo Awal</label><input type="text" id="updateNominal" class="form-control" placeholder="0" onkeyup="formatRupiahTyping(this)" required>
+                  </div>
+                  <div class="col-md-2"><button type="submit" class="btn btn-warning w-100 fw-bold">Update</button>
+                  </div>
+                </form>
+                <small class="text-muted fst-italic mt-2 d-block">*Hanya untuk koreksi saldo awal (bukan transaksi).</small>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-4">
+            <h5 class="text-secondary border-bottom pb-2 mb-3"><i class="fas fa-landmark me-2"></i>Rekening Bank</h5>
+            <div id="container-bank"></div>
+          </div>
+          <div class="col-md-6 mb-4">
+            <h5 class="text-secondary border-bottom pb-2 mb-3"><i class="fas fa-mobile-alt me-2"></i>E-Wallet & Tunai
+            </h5>
+            <div id="container-wallet"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-asset" class="page-section d-none">
+        <h3 class="mb-4 text-secondary fw-bold">Portfolio & Aset</h3>
+        <div class="row g-4 mb-4">
+          <div class="col-md-6">
+            <div class="card card-stat bg-asset-total p-4">
+              <div>
+                <p class="mb-0 opacity-75">Total Nilai Aset</p>
+                <h2 class="fw-bold mt-2" id="txtAssetTotal">Rp 0</h2>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card card-stat bg-asset-return p-4">
+              <div>
+                <p class="mb-0 opacity-75">Return / Dividen</p>
+                <h2 class="fw-bold mt-2" id="txtAssetReturn">Rp 0</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row g-4 mb-4">
+          <div class="col-md-8">
+            <div class="card shadow-sm border-0 p-4 h-100" style="border-radius: 12px;">
+              <h5 class="mb-3 text-secondary">Grafik Pembelian Aset</h5>
+              <div style="height: 300px;"><canvas id="chartAssetBar"></canvas></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card shadow-sm border-0 p-4 h-100" style="border-radius: 12px;">
+              <h5 class="mb-3 text-secondary">Alokasi</h5>
+              <div class="chart-box" style="height: 300px;"><canvas id="chartAssetPie"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+              <h5 class="mb-3 text-secondary">Riwayat Aset</h5>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width:50px;">No</th>
+                      <th>Tanggal</th>
+                      <th>Aset</th>
+                      <th>Sumber</th>
+                      <th>Jumlah</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tblAsset"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-input" class="page-section d-none">
+        <div class="row justify-content-center">
+          <div class="col-md-8">
+            <div class="card shadow border-0 p-4" style="border-radius: 15px;">
+
+              <h4 class="mb-4 text-center text-primary">Input Data</h4>
+
+              <ul class="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-pill">
+                <li class="nav-item">
+                  <a class="nav-link active rounded-pill fw-bold" id="tab-transaksi" onclick="setMode('transaksi')"
+                    style="cursor:pointer;">Transaksi Baru</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link rounded-pill fw-bold" id="tab-transfer" onclick="setMode('transfer')"
+                    style="cursor:pointer;">Pindah Dana</a>
+                </li>
+              </ul>
+
+              <form id="formInput" onsubmit="handleSimpan(event)">
+                <input type="hidden" id="inputMode" name="mode" value="transaksi">
+
+                <div class="mb-3"><label class="text-muted small fw-bold">TANGGAL</label><input type="date" name="tanggal" class="form-control form-control-lg" required>
+                </div>
+
+                <div id="block-transaksi">
+                  <div class="row mb-3">
+                    <div class="col">
+                      <label class="text-muted small fw-bold">TIPE</label><select name="tipe" id="tipeSel" class="form-select form-select-lg" onchange="updateKat()"><option value="Expense">Pengeluaran</option><option value="Income">Pemasukan</option></select>
+                    </div>
+                    <div class="col">
+                      <label class="text-muted small fw-bold">KATEGORI</label><select name="kategori" id="katSel" class="form-select form-select-lg"></select>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="text-muted small fw-bold">SUMBER DANA</label><select name="sumber" id="sumberSel" class="form-select form-select-lg"><option value="">Memuat...</option></select>
+                  </div>
+                </div>
+
+                <div id="block-transfer" style="display:none;">
+                  <div class="row mb-3">
+                    <div class="col">
+                      <label class="text-muted small fw-bold text-danger">DARI AKUN (KELUAR)</label>
+                      <select name="sumber_tf" id="sumberTfSel" class="form-select form-select-lg"></select>
+                    </div>
+                    <div class="col">
+                      <div class="d-flex align-items-center justify-content-center h-100 pt-3">
+                        <i class="fas fa-arrow-right fa-2x text-muted"></i>
+                      </div>
+                    </div>
+                    <div class="col">
+                      <label class="text-muted small fw-bold text-success">KE AKUN (MASUK)</label>
+                      <select name="tujuan_tf" id="tujuanTfSel" class="form-select form-select-lg"></select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3"><label class="text-muted small fw-bold">JUMLAH (Rp)</label><input type="text" id="inputJumlah" name="jumlah" class="form-control form-control-lg fw-bold text-primary" placeholder="0" onkeyup="formatRupiahTyping(this)" required>
+                </div>
+                <div class="mb-3"><label class="text-muted small fw-bold">KETERANGAN</label><input type="text" name="keterangan" class="form-control form-control-lg" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()" required>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                  <button type="submit" class="btn btn-primary btn-lg rounded-pill hover-scale" id="btnSimpan">Simpan Data</button><button type="button" class="btn btn-light btn-lg rounded-pill" onclick="switchPage('dashboard', null)">Batal</button>
+                </div>
+              </form>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-report" class="page-section d-none">
+        <h3 class="mb-4">Laporan Lengkap</h3>
+        <div class="card shadow-sm border-0 p-4 mb-3" style="border-radius: 12px;">
+          <div class="row align-items-end g-3">
+            <div class="col-md-3"><label class="text-muted small mb-1">Dari Tanggal</label><input type="date" id="filterStart" class="form-control">
+            </div>
+            <div class="col-md-3"><label class="text-muted small mb-1">Sampai Tanggal</label><input type="date" id="filterEnd" class="form-control">
+            </div>
+            <div class="col-md-3">
+              <label class="text-muted small mb-1">Tipe</label><select id="filterType" class="form-select"><option value="All">Semua</option><option value="Income">Pemasukan</option><option value="Expense">Pengeluaran</option></select>
+            </div>
+            <div class="col-md-3">
+              <div class="d-flex gap-2">
+                <button onclick="applyFilter()" class="btn btn-primary w-100"><i class="fas fa-filter me-2"></i>Filter</button><button onclick="resetFilter()" class="btn btn-outline-secondary"><i class="fas fa-sync"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card shadow border-0 p-3" style="border-radius: 12px;">
+          <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle" id="tblFull">
+              <thead class="table-dark">
+                <tr>
+                  <th style="width:50px;">No</th>
+                  <th>Tanggal</th>
+                  <th>Tipe</th>
+                  <th>Bank</th>
+                  <th>Kategori</th>
+                  <th>Keterangan</th>
+                  <th>Jumlah</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div id="noDataMsg" class="text-center p-3 text-muted" style="display:none;">Tidak ada data pada periode ini
+          </div>
+        </div>
+      </div>
+
+      <div id="page-profile" class="page-section d-none">
+        <div class="row justify-content-center">
+          <div class="col-md-6">
+            <div class="card shadow border-0 p-4" style="border-radius: 15px;">
+              <h4 class="mb-4 text-center text-primary"><i class="fas fa-user-shield me-2"></i>Edit Profile & Password
+              </h4>
+              <form id="formProfile" onsubmit="handleUpdateProfile(event)">
+                <div class="alert alert-info small"><i class="fas fa-info-circle me-2"></i>Anda akan otomatis Logout
+                  setelah update.</div>
+                <div class="mb-3"><label class="text-muted fw-bold">Username Saat Ini</label><input type="text" class="form-control form-control-lg bg-light" id="oldUser" readonly>
+                </div>
+                <div class="mb-3"><label class="text-muted fw-bold">Password Lama</label><input type="password" name="oldPass" class="form-control form-control-lg" required>
+                </div>
+                <hr class="my-4">
+                <div class="mb-3"><label class="text-muted fw-bold">Username Baru</label><input type="text" name="newUser" id="newUser" class="form-control form-control-lg" required>
+                </div>
+                <div class="mb-3"><label class="text-muted fw-bold">Password Baru</label><input type="password" name="newPass" class="form-control form-control-lg" required>
+                </div>
+                <div class="d-grid gap-2 mt-4">
+                  <button type="submit" class="btn btn-primary btn-lg rounded-pill" id="btnUpdateProfile">Simpan Perubahan</button><button type="button" class="btn btn-light btn-lg rounded-pill" onclick="switchPage('dashboard', null)">Batal</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
