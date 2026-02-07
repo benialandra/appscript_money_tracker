@@ -1,26 +1,35 @@
 <div id="login-container"
   style="display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--secondary-color); z-index:9999; justify-content:center; align-items:center; padding: 20px;">
+
   <div class="card p-4 shadow-lg text-center"
     style="width: 100%; max-width: 450px; border-radius:15px; background-color: var(--bg-card); color: var(--text-main);">
-  
+
     <div class="mb-4 text-primary mt-2">
       <i class="fas fa-wallet fa-4x"></i>
     </div>
-    
+
     <h3 class="fw-bold mb-4" style="color: var(--text-main) !important;">Isi Dompet</h3>
+
     <form onsubmit="handleLogin(event)">
+
       <div class="mb-3 text-start">
         <label for="uName" class="form-label small fw-bold text-muted ms-1">USERNAME</label>
         <input type="text" class="form-control form-control-lg" id="uName" placeholder="Masukkan username..." required
-          style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); padding: 12px 15px; font-size: 1rem;">
+               style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); padding: 12px 15px; font-size: 1rem;">
       </div>
-      
+
       <div class="mb-4 text-start">
         <label for="uPass" class="form-label small fw-bold text-muted ms-1">PASSWORD</label>
         <input type="password" class="form-control form-control-lg" id="uPass" placeholder="Masukkan password..." required
-          style="background-color: var(--bg-input); color: var(--text-main); border-color: var(--border-color); padding: 12px 15px; font-size: 1rem;">
+               style="background-color: var(--bg-light); color: var(--text-dark); border-color: var(--border-color); padding: 12px 15px; font-size: 1rem;">
+
+        <div class="text-end mt-2">
+          <span onclick="handleForgotPassword()" style="cursor: pointer; font-size: 0.85rem;" class="text-success fw-bold hover-card">
+                Lupa Password?
+            </span>
+        </div>
       </div>
-      
+
       <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-6 shadow-sm">MASUK SEKARANG</button>
     </form>
   </div>

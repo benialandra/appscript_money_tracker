@@ -1,29 +1,29 @@
 <script>
   // ===========================================
-  // 1. GLOBAL VARIABLES
+    // 1. GLOBAL VARIABLES & CONFIG
   // ===========================================
   var globalSources = { banks: [], wallets: [], cash: [] };
   var globalBalances = {};
   var globalPlans = [];
   var globalHistory = [];
+    var rowsPerPage = 50;
+    var pageState = { report: 1, plan: 1 };
   
-  // CHART VARIABLES
-  var myChart = null; 
-  var myLineChart = null;
-  var myAssetLine = null;
-  var myAssetDoughnut = null;
+    // CHART INSTANCES
+    var myChart, myLineChart, myAssetLine, myAssetDoughnut;
+    var reportLineChart, reportCatChart; 
 
   var detectedAssets = [];
-  var filterState = { isActive: false, startDate: null, endDate: null };
-
+    var filterState = { isActive: false, startDate: null, endDate: null };
   const ASSET_KEYWORDS = ['PEGADAIAN', 'TABUNGAN EMAS', 'EMAS', 'GOLD', 'LM', 'ANTAM', 'PLUANG', 'BIBIT', 'AJAIB', 'BAREKSA', 'IPOT', 'STOCKBIT', 'SEKURITAS', 'MOST', 'CRYPTO', 'BITCOIN', 'ETH', 'BINANCE', 'TOKOCRYPTO', 'PINTU', 'SAHAM', 'STOCK', 'LOT', 'REKSADANA', 'RD', 'RDPU', 'RDS', 'INVESTASI', 'INVEST', 'DEPOSITO', 'SBN', 'ORI', 'SUKUK', 'ST0', 'SR0', 'TANAH', 'PROPERTY', 'RUMAH', 'RUKO', 'RDI', 'DANA DARURAT', 'SIMPANAN JANGKA'];
 
   // ===========================================
-  // 2. INITIALIZATION
+    // 2. INITIALIZATION & TIMER
   // ===========================================
   window.onload = function () {
     if (sessionStorage.getItem('isLoggedIn') === 'true') { showApp(); } else { showLogin(); }
     
+      // Theme Init
     let savedTheme = localStorage.getItem('theme');
     let icon = document.getElementById('themeIcon');
     if (savedTheme === 'dark') { 
@@ -33,12 +33,14 @@
         if(icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
     }
     
+      // Timer Refresh Otomatis (60 Detik)
     setInterval(function() {
-        let isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
-        let isInputPageOpen = document.getElementById('page-input').style.display !== 'none';
-        let isSwalOpen = Swal.isVisible(); 
-        if (isLoggedIn && !isInputPageOpen && !isSwalOpen) { refreshData(true); }
-    }, 8000);
+        if (sessionStorage.getItem('isLoggedIn') === 'true' &&
+            document.getElementById('page-input').style.display !== 'block' &&
+            !Swal.isVisible()) {
+            refreshData(true);
+        }
+    }, 60000); 
   };
 
   function toggleTheme() {
@@ -52,28 +54,28 @@
       let textColor = isDark ? '#fff' : '#666';
       let gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
 
-      [myChart, myLineChart, myAssetDoughnut, myAssetLine].forEach(c => {
-          if(c) {
-              if(c.options.plugins.legend) c.options.plugins.legend.labels.color = textColor;
-              if(c.options.scales && c.options.scales.y) c.options.scales.y.grid.color = gridColor;
+      [myChart, myLineChart, myAssetDoughnut, myAssetLine, reportLineChart, reportCatChart].forEach(c => {
+          if (c) {
+              if (c.options.plugins.legend) c.options.plugins.legend.labels.color = textColor;
+              if (c.options.scales && c.options.scales.y) c.options.scales.y.grid.color = gridColor;
               c.update();
-          }
+          } 
       });
   }
 
-  // ===========================================
-  // 3. CORE LOGIC
-  // ===========================================
   function refreshData(isSilent = false) {
     if (!isSilent) document.getElementById('loader').style.display = 'flex';
-    google.script.run.withSuccessHandler(function (response) {
-      renderApp(response);
-      if (!isSilent) document.getElementById('loader').style.display = 'none';
-    }).withFailureHandler(e => {
-       if (!isSilent) { document.getElementById('loader').style.display = 'none'; Swal.fire('Error', e.message, 'error'); }
+      google.script.run.withSuccessHandler(function (response) {
+          renderApp(response);
+          if (!isSilent) document.getElementById('loader').style.display = 'none';
+      }).withFailureHandler(e => {
+          if (!isSilent) { document.getElementById('loader').style.display = 'none'; Swal.fire('Error', e.message, 'error'); } 
     }).getInitData();
   }
 
+    // ===========================================
+    // 3. CORE RENDER LOGIC (FUNGSI UTAMA)
+    // ===========================================
   function renderApp(res) {
     if (!res || typeof res !== 'object') res = { sources: { banks: [], wallets: [], cash: [] }, balances: {}, plans: [], history: [] };
 
@@ -82,148 +84,524 @@
     globalPlans = res.plans || [];
     globalHistory = res.history || [];
 
-    let totalSemua = 0, totalInvestasi = 0;
+      let totalSemua = 0, totalInvestasi = 0, sumBank = 0, sumWallet = 0;
     let allAcc = [...(globalSources.banks||[]), ...(globalSources.wallets||[]), ...(globalSources.cash||[])];
     detectedAssets = [];
 
-    allAcc.forEach(acc => {
-      let val = globalBalances[acc.name] || 0;
-      totalSemua += val;
-      let uName = acc.name.toUpperCase();
-      let isAsset = ASSET_KEYWORDS.some(keyword => uName.includes(keyword));
-      if (isAsset) { totalInvestasi += val; detectedAssets.push(`${acc.name}: ${formatRp(val)}`); }
+      allAcc.forEach(acc => {
+          let val = globalBalances[acc.name] || 0;
+          totalSemua += val; 
+
+        // Deteksi Aset
+        if (ASSET_KEYWORDS.some(k => acc.name.toUpperCase().includes(k))) {
+            totalInvestasi += val;
+            detectedAssets.push(`${acc.name}: ${formatRp(val)}`);
+        }
+
+        // Hitung Group Bank vs Wallet
+        if (globalSources.banks.some(b => b.name === acc.name)) sumBank += val;
+        else sumWallet += val;
     });
 
-    let totalRencana = 0;
-    if(globalPlans.length > 0) { globalPlans.forEach(p => { if(p && p.status !== 'Lunas') totalRencana += (p.amount || 0); }); }
-    let sisaUangBebas = totalSemua - totalInvestasi - totalRencana;
-
-    safeSetText('dashTotalSaldo', formatRp(sisaUangBebas));
+      let totalRencana = 0; 
+      if (globalPlans.length > 0) {
+          globalPlans.forEach(p => { if (p && p.status !== 'Lunas') totalRencana += (p.amount || 0); });
+      }
+    
+      // Update Text Dashboard
+      safeSetText('dashTotalSaldo', formatRp(totalSemua - totalInvestasi - totalRencana));
     safeSetText('dashLiquid', formatRp(totalRencana));
     safeSetText('dashInvest', formatRp(totalInvestasi));
 
-    renderSaldoSection(globalBalances);
-    renderPortfolioSection(allAcc, globalBalances);
+      // Update Text Card Saldo (Fitur Baru)
+      safeSetText('statTotalAll', formatRp(totalSemua));
+      safeSetText('statTotalBank', formatRp(sumBank));
+      safeSetText('statTotalWallet', formatRp(sumWallet));
+
+      // Panggil Semua Renderer Sub-Bagian
+      renderSaldoSection(globalBalances);         // <--- INI SUDAH ADA
+      renderPortfolioSection(allAcc, globalBalances); // <--- INI SUDAH ADA (DI BAWAH)
     renderPlans(); 
-    setupDropdownInput(allAcc);
+      renderReportTable(); 
+    
+      setupDropdownInput(allAcc); 
     renderDashboardComponents();
     renderLineChartHistory(totalSemua - totalInvestasi, totalRencana);
-    renderAssetCharts(allAcc, globalBalances, totalInvestasi);
-    renderReportTable(); 
+      renderAssetCharts(allAcc, globalBalances, totalInvestasi);
   }
 
   // ===========================================
-  // 4. FUNCTION YANG DIUPDATE (LOGIKA FILTER ASET)
+    // 4. CHART REPORT (LINE & DONUT HOVER)
   // ===========================================
-  
-  function markAsLunas(row, nama, nominal) { 
-      let allAcc = [...(globalSources.banks||[]), ...(globalSources.wallets||[]), ...(globalSources.cash||[])];
-      let options = '<option value="" disabled selected>-- Pilih Sumber Dana --</option>';
-      
-      // FILTER: HANYA TAMPILKAN YANG BUKAN ASET
-      allAcc.forEach(acc => {
-          let uName = acc.name.toUpperCase();
-          // Cek apakah akun ini mengandung keyword aset?
-          let isAsset = ASSET_KEYWORDS.some(k => uName.includes(k));
-          
-          // Jika BUKAN aset, baru masukkan ke dropdown
-          if (!isAsset) {
-              let saldo = globalBalances[acc.name] || 0;
-              options += `<option value="${acc.name}">${acc.name} (Sisa: ${formatRp(saldo)})</option>`;
-          }
-      });
+    function renderReportTable(customData = null) {
+        let tbody = document.getElementById('tblReportBody'); if (!tbody) return;
+        let data = globalHistory;
+        if (customData) data = customData;
+        else if (filterState.isActive) data = globalHistory.filter(m => { let d = new Date(m.date); return d >= filterState.startDate && d <= filterState.endDate; });
 
+      renderReportCharts(data); // Render Grafik Laporan
+
+            ensurePaginationContainers('page-report', 'report');
+            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4">Tidak ada data.</td></tr>'; renderPaginationUI(0, 1, 'report'); return; }
+
+            let total = data.length; let pages = Math.ceil(total / rowsPerPage);
+            if (pageState.report > pages) pageState.report = 1;
+            let start = (pageState.report - 1) * rowsPerPage;
+            let sliced = data.slice(start, start + rowsPerPage);
+
+            let html = sliced.map((m, i) => {
+                let idx = start + i + 1;
+                let tgl = '-'; try { tgl = new Date(m.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { }
+                let nom = formatRp(m.amount);
+                let col = 'text-dark', badge = '';
+                if (m.type === 'Income') { col = 'text-success fw-bold'; nom = '+ ' + nom; badge = '<span class="badge bg-success bg-opacity-10 text-success">Masuk</span>'; }
+                else if (m.type === 'Expense') { col = 'text-danger fw-bold'; nom = '- ' + nom; badge = '<span class="badge bg-danger bg-opacity-10 text-danger">Keluar</span>'; }
+                else { col = 'text-primary fw-bold'; badge = '<span class="badge bg-primary bg-opacity-10 text-primary">Transfer</span>'; }
+                let akun = m.acc; if (m.type === 'Transfer') akun = `${m.acc} <i class="fas fa-arrow-right small text-muted mx-1"></i> ${m.dest || ''}`;
+                return `<tr><td>${idx}</td><td class="small">${tgl}</td><td>${badge}</td><td class="small">${m.cat}</td><td class="small text-muted">${m.note}</td><td class="small">${akun}</td><td class="text-end ${col}">${nom}</td></tr>`;
+            }).join('');
+            tbody.innerHTML = html;
+            renderPaginationUI(total, pageState.report, 'report');
+        }
+
+        function renderReportCharts(data) {
+            // Data Line Chart
+            let monthlyData = {};
+            data.forEach(m => {
+                let d = new Date(m.date);
+                let key = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2);
+                let label = d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+                if (!monthlyData[key]) monthlyData[key] = { label: label, inc: 0, exp: 0 };
+                if (m.type === 'Income') monthlyData[key].inc += m.amount;
+                if (m.type === 'Expense') monthlyData[key].exp += m.amount;
+            });
+
+            let sortedKeys = Object.keys(monthlyData).sort();
+            let labelsLine = sortedKeys.map(k => monthlyData[k].label);
+            let dataInc = sortedKeys.map(k => monthlyData[k].inc);
+            let dataExp = sortedKeys.map(k => monthlyData[k].exp);
+
+            // Data Donut Chart
+            let catData = {};
+            data.filter(m => m.type === 'Expense').forEach(m => {
+                let k = m.cat || 'Lainnya';
+                if (!catData[k]) catData[k] = 0;
+                catData[k] += m.amount;
+            });
+
+            let sortedCats = Object.keys(catData).sort((a, b) => catData[b] - catData[a]);
+            let labelsCat = sortedCats;
+            let valuesCat = sortedCats.map(k => catData[k]);
+            let colorsCat = generateColorPalette(labelsCat.length);
+
+            // Render Line
+            let ctxLine = document.getElementById('chartReportLine');
+            if (ctxLine) {
+                if (reportLineChart) reportLineChart.destroy();
+                let isDark = document.body.classList.contains('dark-mode');
+                let gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+                reportLineChart = new Chart(ctxLine, {
+                    type: 'line',
+                    data: {
+                        labels: labelsLine,
+                        datasets: [
+                            { label: 'Pemasukan', data: dataInc, borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.1)', tension: 0.4, fill: true },
+                            { label: 'Pengeluaran', data: dataExp, borderColor: '#e74c3c', backgroundColor: 'rgba(231, 76, 60, 0.1)', tension: 0.4, fill: true }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { position: 'top', labels: { color: isDark ? '#fff' : '#666' } } },
+                        scales: { y: { grid: { color: gridColor }, ticks: { color: isDark ? '#aaa' : '#666' } }, x: { grid: { display: false }, ticks: { color: isDark ? '#aaa' : '#666' } } },
+                        animation: { duration: 1500, easing: 'easeOutQuart' }
+                    }
+                });
+            }
+
+            // Render Donut (With Hover Bounce)
+            let ctxDonut = document.getElementById('chartReportCategory');
+            if (ctxDonut) {
+                if (reportCatChart) reportCatChart.destroy();
+                let isDark = document.body.classList.contains('dark-mode');
+                reportCatChart = new Chart(ctxDonut, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labelsCat,
+                        datasets: [{
+                            data: valuesCat,
+                            backgroundColor: colorsCat,
+                            borderWidth: 2,
+                            borderColor: isDark ? '#1e1e1e' : '#ffffff',
+                            hoverOffset: 25, // BOUNCE EFFECT
+                            hoverBorderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        cutout: '30%',
+                        layout: { padding: 20 },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 }, color: isDark ? '#fff' : '#666' } },
+                            tooltip: { callbacks: { label: function (context) { let label = context.label || ''; let value = context.parsed; let total = context.chart._metasets[context.datasetIndex].total; let percentage = ((value / total) * 100).toFixed(1) + "%"; return label + ': ' + formatRp(value) + ' (' + percentage + ')'; } } }
+                        },
+                        animation: { animateScale: true, animateRotate: true }
+                    }
+                });
+            }
+        }
+
+        // ===========================================
+        // 5. HELPER RENDERERS (YANG HILANG SEBELUMNYA ADA DI SINI)
+        // ===========================================
+
+        // --- FUNGSI RENDER SALDO & CARD ---
+        function renderSaldoSection(balances) {
+            let cBank = document.getElementById('container-bank');
+            let cWallet = document.getElementById('container-wallet');
+
+            if (cBank) cBank.innerHTML = generateCardHtml(globalSources.banks, balances, 'text-primary');
+            if (cWallet) cWallet.innerHTML = generateCardHtml([...(globalSources.wallets || []), ...(globalSources.cash || [])], balances, 'text-success');
+        }
+
+        function generateCardHtml(list, balances, colorClass) {
+            if (!list) return '';
+            return list.map((acc, index) => {
+                let bal = balances[acc.name] || 0;
+                let uName = acc.name.toUpperCase(); 
+          let isAsset = ASSET_KEYWORDS.some(k => uName.includes(k)); 
+          let badge = isAsset ? '<span class="badge bg-warning text-dark ms-2 small" style="font-size:0.6em">INV</span>' : '';
+          let delay = index * 100; 
+          
+          return `<div class="col-md-3 mb-3 animate-entry" style="animation-delay: ${delay}ms"><div class="p-3 bg-white shadow-sm d-flex justify-content-between align-items-center rounded hover-card"><div><h3 class="fs-5">${formatRp(bal)}</h3><p class="fs-6 text-muted mb-0">${acc.name} ${badge}</p></div></div></div>`;
+      }).join('');
+            }
+
+            // --- FUNGSI RENDER PORTFOLIO (YANG TADI ERROR) ---
+            function renderPortfolioSection(allAccounts, balances) {
+                let tbody = document.getElementById('tbodyAsset');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+
+                let found = false;
+                let counter = 1;
+
+                allAccounts.forEach(acc => {
+                    if (ASSET_KEYWORDS.some(k => acc.name.toUpperCase().includes(k))) {
+                        found = true;
+                        let bal = balances[acc.name] || 0;
+                        let color = bal > 0 ? 'fw-bold' : 'text-muted';
+                        tbody.innerHTML += `<tr><td>${counter++}</td><td>${acc.name}</td><td class="text-end ${color}">${formatRp(bal)}</td></tr>`;
+                    }
+                }); 
+        
+            if (!found) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted small">Belum ada akun aset terdeteksi.</td></tr>';
+            }
+        }
+
+        // ===========================================
+        // 6. HELPER UMUM & EVENT HANDLER
+        // ===========================================
+        function renderPlans() {
+            let tbody = document.getElementById('tblPlans'); if (!tbody) return;
+            ensurePaginationContainers('page-budget', 'plan');
+            if (!globalPlans || globalPlans.length === 0) { if (document.getElementById('emptyPlanMsg')) document.getElementById('emptyPlanMsg').style.display = 'block'; tbody.innerHTML = ''; renderPaginationUI(0, 1, 'plan'); return; }
+            if (document.getElementById('emptyPlanMsg')) document.getElementById('emptyPlanMsg').style.display = 'none';
+            let total = globalPlans.length; let pages = Math.ceil(total / rowsPerPage);
+            if (pageState.plan > pages) pageState.plan = 1;
+            let start = (pageState.plan - 1) * rowsPerPage; let sliced = globalPlans.slice(start, start + rowsPerPage);
+            let html = sliced.map((p, i) => {
+                let idx = start + i + 1; let tgl = '-'; try { tgl = new Date(p.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }); } catch (e) { }
+                let badge = (p.status === 'Lunas') ? '<span class="badge bg-success">Lunas</span>' : '<span class="badge bg-warning text-dark">Belum</span>';
+                let descSafe = (p.desc || "").replace(/'/g, "\\'"); let nameSafe = p.name.replace(/'/g, "\\'");
+                let btnEdit = `<button class="btn btn-sm btn-outline-warning me-1" title="Edit" onclick="showEditPlanModal(${p.row}, '${nameSafe}', ${p.amount}, '${p.date}', '${descSafe}')"><i class="fas fa-edit"></i></button>`;
+                let btnBayar = (p.status === 'Lunas') ? '' : `<button class="btn btn-sm btn-outline-success" onclick="markAsLunas(${p.row}, '${nameSafe}', ${p.amount})"><i class="fas fa-check"></i></button>`;
+                return `<tr><th scope="row">${idx}</th><td>${p.name}</td><td>${tgl}</td><td class="fw-bold text-primary">${formatRp(p.amount)}</td><td>${badge}</td><td><div class="d-flex">${btnEdit}${btnBayar}</div></td></tr>`;
+            }).join('');
+            tbody.innerHTML = html; renderPaginationUI(total, pageState.plan, 'plan');
+        }
+
+        function showEditPlanModal(row, oldName, oldAmount, oldDateStr, oldDesc) {
+            let d = new Date(oldDateStr); let dateVal = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+            let nominalFormatted = new Intl.NumberFormat('id-ID').format(oldAmount);
       Swal.fire({
-          title: 'Lunasi Rencana?',
-          html: `
-            <p class="text-muted mb-3">Anda akan melunasi <b>${nama}</b> sebesar <b>${formatRp(nominal)}</b>.</p>
-            <div class="text-start">
-                <label class="small fw-bold text-muted">BAYAR PAKAI APA?</label>
-                <select id="swal-sumber-bayar" class="form-select mb-3">${options}</select>
-            </div>
-            <div class="alert alert-info small py-2 px-2">
-                <i class="fas fa-info-circle me-1"></i> Hanya akun non-investasi yang ditampilkan.
-            </div>
-          `,
-          showCancelButton: true,
-          confirmButtonText: 'Bayar & Lunasi',
-          confirmButtonColor: '#009d63',
+          title: 'Update Rencana',
+          html: `<div class="text-start"><label class="small fw-bold text-muted mb-1">NAMA RENCANA</label><input id="edit-nama" class="form-control mb-2 fw-bold" value="${oldName}"><label class="small fw-bold text-muted mb-1">TARGET NOMINAL (Rp)</label><input id="edit-amount" class="form-control mb-2 text-primary fw-bold" value="${nominalFormatted}" onkeyup="formatRupiahTyping(this)"><label class="small fw-bold text-muted mb-1">TENGGAT WAKTU</label><input type="date" id="edit-date" class="form-control mb-2" value="${dateVal}"><label class="small fw-bold text-muted mb-1">KETERANGAN</label><input id="edit-desc" class="form-control" value="${oldDesc}"></div>`,
+          showCancelButton: true, confirmButtonText: 'Simpan', confirmButtonColor: '#ffc107', cancelButtonText: 'Batal',
           preConfirm: () => {
-              let akun = document.getElementById('swal-sumber-bayar').value;
-              if (!akun) { Swal.showValidationMessage('Harap pilih akun sumber dana!'); }
-              return akun;
+              let n = document.getElementById('edit-nama').value; let a = document.getElementById('edit-amount').value.replace(/\./g, '');
+              let d = document.getElementById('edit-date').value; let k = document.getElementById('edit-desc').value;
+              if (!n || !a || !d) { Swal.showValidationMessage('Mohon lengkapi data'); return false; } return { row: row, nama: n, nominal: a, tgl: d, ket: k };
           }
       }).then((result) => {
           if (result.isConfirmed) {
-              let akunSumber = result.value;
-              let saldoAda = globalBalances[akunSumber] || 0;
-              if (saldoAda < nominal) {
-                  Swal.fire('Gagal', 'Saldo di akun ' + akunSumber + ' tidak cukup!', 'error');
-                  return;
-              }
-              Swal.fire({title: 'Memproses Pembayaran...', didOpen: () => Swal.showLoading()});
-              google.script.run.withSuccessHandler((res) => {
-                  Swal.fire('Sukses', 'Rencana Lunas & Saldo Terpotong', 'success');
-                  refreshData(true);
-              }).bayarRencana(row, nama, nominal, akunSumber);
+              Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() });
+              google.script.run.withSuccessHandler(() => { Swal.fire('Sukses', 'Berhasil update!', 'success'); refreshData(true); }).withFailureHandler((e) => { Swal.fire('Gagal', e.message, 'error'); }).updateRencana(result.value.row, result.value.nama, result.value.nominal, result.value.tgl, result.value.ket);
           }
       });
-  }
+                }
 
-  // ===========================================
-  // 5. CHART & HELPER LAINNYA (TETAP SAMA)
-  // ===========================================
+                function renderPaginationUI(total, current, type) {
+                    let top = document.getElementById(`pag-top-${type}`); let bot = document.getElementById(`pag-bottom-${type}`);
+                    let pages = Math.ceil(total / rowsPerPage); if (total === 0) { if (top) top.innerHTML = ''; if (bot) bot.innerHTML = ''; return; }
+                    let start = (current - 1) * rowsPerPage + 1; let end = Math.min(current * rowsPerPage, total);
+                    if (top) top.innerHTML = `<div class="d-flex align-items-center mb-2"><span class="small text-muted me-2">Show</span><select class="form-select form-select-sm" style="width:auto;" onchange="changeRows('${type}',this.value)"><option value="10" ${rowsPerPage == 10 ? 'selected' : ''}>10</option><option value="25" ${rowsPerPage == 25 ? 'selected' : ''}>25</option><option value="50" ${rowsPerPage == 50 ? 'selected' : ''}>50</option><option value="100" ${rowsPerPage == 100 ? 'selected' : ''}>100</option></select></div>`;
+                    if (bot) {
+                        if (pages <= 1) bot.innerHTML = `<div class="mt-3 pt-2 border-top text-center text-muted small">Total ${total} data</div>`;
+                        else bot.innerHTML = `<div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top"><small class="text-muted">${start}-${end} dari ${total}</small><div><button class="btn btn-sm btn-outline-secondary me-1" ${current === 1 ? 'disabled' : ''} onclick="chPage('${type}',-1)"><i class="fas fa-chevron-left"></i></button><button class="btn btn-sm btn-outline-secondary" ${current === pages ? 'disabled' : ''} onclick="chPage('${type}',1)"><i class="fas fa-chevron-right"></i></button></div></div>`;
+                    }
+                }
+
+    function changeRows(type, v) { rowsPerPage = Number(v); if (type === 'report') { pageState.report = 1; renderReportTable(); } else { pageState.plan = 1; renderPlans(); } }
+    function chPage(type, d) { if (type === 'report') { pageState.report += d; renderReportTable(); } else { pageState.plan += d; renderPlans(); } }
+    function ensurePaginationContainers(pid, type) {
+        let p = document.getElementById(pid); if (!p) return; let tr = p.querySelector('.table-responsive'); if (!tr) return;
+        let tid = `pag-top-${type}`, bid = `pag-bottom-${type}`;
+        if (!document.getElementById(tid)) { let d = document.createElement('div'); d.id = tid; tr.parentNode.insertBefore(d, tr); }
+        if (!document.getElementById(bid)) { let d = document.createElement('div'); d.id = bid; tr.parentNode.insertBefore(d, tr.nextSibling); }
+    }
+    function resetFilterReport() { document.getElementById('filterStart').value = ''; document.getElementById('filterEnd').value = ''; filterState.isActive = false; filterState.startDate = null; filterState.endDate = null; renderReportTable(null); }
+
+    function setupDropdownInput(allAccounts) { let opts = '<option value="" disabled selected>-- Pilih Akun --</option>'; allAccounts.forEach(acc => { let s = globalBalances[acc.name] || 0; opts += `<option value="${acc.name}">${acc.name} (${formatRp(s)})</option>`; });['sumberSel', 'sumberTfSel', 'tujuanTfSel', 'updateAkunSel'].forEach(id => { let el = document.getElementById(id); if (el) el.innerHTML = opts; }); updateKat(); }
+    function downloadExcel() {
+        let data = globalHistory; if (filterState.isActive) data = globalHistory.filter(m => { let d = new Date(m.date); return d >= filterState.startDate && d <= filterState.endDate; });
+        if (!data || data.length === 0) { Swal.fire('Info', 'Kosong', 'info'); return; }
+        let csv = "TANGGAL,TIPE,KATEGORI,KET,AKUN,MASUK,KELUAR\n";
+        data.forEach(r => { let d = new Date(r.date); let t = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); let k = (r.note || "").replace(/,/g, " ").replace(/\n/g, " "); let m = (r.type === 'Income') ? r.amount : 0; let out = (r.type !== 'Income') ? r.amount : 0; csv += `${t},${r.type},${r.cat},${k},${r.acc},${m},${out}\n`; });
+        let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); let link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "Laporan.csv"; link.click();
+  }
+    function handleFilterReport() { let startStr = document.getElementById('filterStart').value; let endStr = document.getElementById('filterEnd').value; if (!startStr || !endStr) { Swal.fire('Info', 'Harap pilih Tanggal Awal dan Akhir', 'info'); return; } let startDate = new Date(startStr); let endDate = new Date(endStr); endDate.setHours(23, 59, 59); filterState.isActive = true; filterState.startDate = startDate; filterState.endDate = endDate; renderReportTable(null); Swal.fire({ title: 'Filter Berhasil', text: `Menampilkan data terpilih.`, icon: 'success', timer: 1000, showConfirmButton: false }); }
+
   function renderAssetCharts(allAccounts, balances, totalInvest) {
+      // 1. RENDER DOUGHNUT CHART (ASSET ALLOCATION)
       let ctxDoughnut = document.getElementById('chartAssetDoughnut');
       if (ctxDoughnut) {
           let assetLabels = [], assetValues = [];
+
+          // Filter hanya akun yang termasuk ASET
           allAccounts.forEach(acc => {
               if (ASSET_KEYWORDS.some(k => acc.name.toUpperCase().includes(k))) {
-                  let val = balances[acc.name] || 0;
-                  if (val > 0) { assetLabels.push(acc.name); assetValues.push(val); }
-              }
+                  let val = balances[acc.name] || 0; 
+                  if (val > 0) {
+                      assetLabels.push(acc.name);
+                      assetValues.push(val);
+                  }
+              } 
           });
+
           if (myAssetDoughnut) myAssetDoughnut.destroy();
+
           let isDark = document.body.classList.contains('dark-mode');
           let vibrantColors = ['#2ecc71', '#3498db', '#9b59b6', '#f1c40f', '#e67e22', '#e74c3c', '#1abc9c', '#34495e', '#d35400', '#c0392b', '#8e44ad', '#2980b9'];
-          myAssetDoughnut = new Chart(ctxDoughnut, { type: 'doughnut', data: { labels: assetLabels, datasets: [{ data: assetValues, backgroundColor: vibrantColors, borderWidth: 2, borderColor: isDark ? '#1e1e1e' : '#fff' }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: isDark ? '#fff' : '#666', font: {size: 10}, padding: 15 } } } } });
+
+          myAssetDoughnut = new Chart(ctxDoughnut, {
+              type: 'doughnut',
+              data: {
+                  labels: assetLabels,
+                  datasets: [{
+                      data: assetValues,
+                      backgroundColor: vibrantColors,
+                      borderWidth: 2,
+                      borderColor: isDark ? '#1e1e1e' : '#fff',
+                      hoverOffset: 20, // <--- EFEK BOUNCE (POP OUT)
+                      hoverBorderWidth: 0
+                  }]
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  cutout: '30%', // Lubang tengah
+                  layout: {
+                      padding: 15 // <--- PADDING AGAR TIDAK KEPOTONG SAAT BOUNCE
+                  },
+                  plugins: {
+                      legend: {
+                          position: 'bottom',
+                          labels: { color: isDark ? '#fff' : '#666', font: { size: 10 }, padding: 15 }
+                      },
+                      tooltip: { // TAMBAHAN: Persentase di Tooltip
+                          callbacks: {
+                              label: function (context) {
+                                  let label = context.label || '';
+                                  let value = context.parsed;
+                                  let total = context.chart._metasets[context.datasetIndex].total;
+                                  let percentage = ((value / total) * 100).toFixed(1) + "%";
+                                  return label + ': ' + formatRp(value) + ' (' + percentage + ')';
+                              }
+                          }
+                      }
+                  },
+                  animation: { animateScale: true, animateRotate: true }
+              }
+          });
       }
+
+      // 2. RENDER LINE CHART (ASSET TREND) - Tetap Sama tapi dirapikan
       let ctxLine = document.getElementById('chartAssetTrend');
       if (ctxLine && globalHistory) {
           let days = [], values = [], tempVal = totalInvest, today = new Date();
-          let startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+          let startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1); 
           let histIndex = 0;
+
           for (let i = 0; i < 31; i++) {
-              let d = new Date(); d.setDate(today.getDate() - i); if (d < startOfMonth) break; days.unshift(d.toLocaleDateString('id-ID', {day:'numeric', month:'short'})); values.unshift(tempVal);
-              while(histIndex < globalHistory.length) { let tx = globalHistory[histIndex]; let txDate = new Date(tx.date); if (isSameDay(txDate, d)) { let isAssetSource = ASSET_KEYWORDS.some(k => tx.acc.toUpperCase().includes(k)); let isAssetDest = ASSET_KEYWORDS.some(k => (tx.dest||"").toUpperCase().includes(k)); if ( (tx.type === 'Income' && isAssetSource) || (tx.type === 'Transfer' && isAssetDest) ) tempVal -= tx.amount; else if ( (tx.type === 'Expense' && isAssetSource) || (tx.type === 'Transfer' && isAssetSource) ) tempVal += tx.amount; histIndex++; } else if (txDate < d) { break; } else { histIndex++; } }
+              let d = new Date(); d.setDate(today.getDate() - i);
+              if (d < startOfMonth) break;
+              days.unshift(d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }));
+              values.unshift(tempVal);
+
+              while (histIndex < globalHistory.length) {
+                  let tx = globalHistory[histIndex];
+                  let txDate = new Date(tx.date);
+                  if (isSameDay(txDate, d)) {
+                      let isAssetSource = ASSET_KEYWORDS.some(k => tx.acc.toUpperCase().includes(k));
+                      let isAssetDest = ASSET_KEYWORDS.some(k => (tx.dest || "").toUpperCase().includes(k));
+
+                      if ((tx.type === 'Income' && isAssetSource) || (tx.type === 'Transfer' && isAssetDest)) tempVal -= tx.amount;
+                      else if ((tx.type === 'Expense' && isAssetSource) || (tx.type === 'Transfer' && isAssetSource)) tempVal += tx.amount;
+
+                      histIndex++;
+                  } else if (txDate < d) { break; } else { histIndex++; }
+              }
           }
+
           if (myAssetLine) myAssetLine.destroy();
           let isDark = document.body.classList.contains('dark-mode');
-          let gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-          let gradientStroke = ctxLine.getContext('2d').createLinearGradient(0, 0, 400, 0); gradientStroke.addColorStop(0, '#8e44ad'); gradientStroke.addColorStop(0.5, '#3498db'); gradientStroke.addColorStop(1, '#2ecc71');
-          let gradientFill = ctxLine.getContext('2d').createLinearGradient(0, 0, 0, 300); gradientFill.addColorStop(0, 'rgba(52, 152, 219, 0.3)'); gradientFill.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
-          myAssetLine = new Chart(ctxLine, { type: 'line', data: { labels: days, datasets: [{ label: 'Nilai Aset', data: values, borderColor: gradientStroke, backgroundColor: gradientFill, borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderColor: '#3498db', pointBorderWidth: 2, pointHoverRadius: 10, pointHoverBackgroundColor: '#f1c40f', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleColor: '#fff', bodyColor: '#fff', padding: 12, cornerRadius: 8, displayColors: false, callbacks: { label: function(c){return 'Rp '+new Intl.NumberFormat('id-ID').format(c.parsed.y)} } } }, scales: { y: { beginAtZero: false, grid: { display: true, color: gridColor, borderDash: [5,5] }, ticks: { color: isDark?'#aaa':'#666' } }, x: { grid: { display: false }, ticks: { color: isDark?'#aaa':'#666' } } }, animation: { y: { duration: 2000, easing: 'easeOutQuart' } } } });
+          let gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; 
+
+          let gradientStroke = ctxLine.getContext('2d').createLinearGradient(0, 0, 400, 0);
+          gradientStroke.addColorStop(0, '#8e44ad');
+          gradientStroke.addColorStop(0.5, '#3498db');
+          gradientStroke.addColorStop(1, '#2ecc71');
+
+          let gradientFill = ctxLine.getContext('2d').createLinearGradient(0, 0, 0, 300);
+          gradientFill.addColorStop(0, 'rgba(52, 152, 219, 0.3)');
+          gradientFill.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
+
+          myAssetLine = new Chart(ctxLine, {
+              type: 'line',
+              data: {
+                  labels: days,
+                  datasets: [{
+                      label: 'Nilai Aset',
+                      data: values,
+                      borderColor: gradientStroke,
+                      backgroundColor: gradientFill,
+                      borderWidth: 3,
+                      fill: true,
+                      tension: 0.4,
+                      pointRadius: 4,
+                      pointBackgroundColor: '#fff',
+                      pointBorderColor: '#3498db',
+                      pointBorderWidth: 2
+                  }]
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  interaction: { mode: 'index', intersect: false },
+                  plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                          backgroundColor: 'rgba(0,0,0,0.8)',
+                          titleColor: '#fff', bodyColor: '#fff', padding: 12, cornerRadius: 8,
+                          callbacks: { label: function (c) { return 'Rp ' + new Intl.NumberFormat('id-ID').format(c.parsed.y) } }
+                      }
+                  },
+                  scales: {
+                      y: { beginAtZero: false, grid: { display: true, color: gridColor, borderDash: [5, 5] }, ticks: { color: isDark ? '#aaa' : '#666' } },
+                      x: { grid: { display: false }, ticks: { color: isDark ? '#aaa' : '#666' } }
+                  },
+                  animation: { y: { duration: 2000, easing: 'easeOutQuart' } }
+              }
+          });
       }
   }
 
-  function renderPortfolioSection(allAccounts, balances) { let tbody = document.getElementById('tbodyAsset'); if (!tbody) return; tbody.innerHTML = ''; let found = false; let counter = 1; allAccounts.forEach(acc => { if (ASSET_KEYWORDS.some(k => acc.name.toUpperCase().includes(k))) { found = true; let bal = balances[acc.name] || 0; let color = bal > 0 ? 'fw-bold' : 'text-muted'; tbody.innerHTML += `<tr><td>${counter++}</td><td>${acc.name}</td><td class="text-end ${color}">${formatRp(bal)}</td></tr>`; } }); if (!found) { tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted small">Belum ada akun aset terdeteksi.</td></tr>'; } }
-  function renderSaldoSection(balances) { let cBank = document.getElementById('container-bank'); let cWallet = document.getElementById('container-wallet'); if (cBank) cBank.innerHTML = generateCardHtml(globalSources.banks, balances, 'text-primary'); if (cWallet) cWallet.innerHTML = generateCardHtml([...(globalSources.wallets||[]), ...(globalSources.cash||[])], balances, 'text-success'); }
-  function generateCardHtml(list, balances, colorClass) { if (!list) return ''; return list.map((acc, index) => { let bal = balances[acc.name] || 0; let uName = acc.name.toUpperCase(); let isAsset = ASSET_KEYWORDS.some(k => uName.includes(k)); let badge = isAsset ? '<span class="badge bg-warning text-dark ms-2 small" style="font-size:0.6em">INV</span>' : ''; let delay = index * 100; return `<div class="col-md-3 mb-3 animate-entry" style="animation-delay: ${delay}ms"><div class="p-3 bg-white shadow-sm d-flex justify-content-between align-items-center rounded hover-card"><div><h3 class="fs-5">${formatRp(bal)}</h3><p class="fs-6 text-muted mb-0">${acc.name} ${badge}</p></div></div></div>`; }).join(''); }
-  function renderDashboardComponents() { let tbody = document.getElementById('tblDashboardMutasi'); if (tbody) { tbody.innerHTML = ''; if (!globalHistory || globalHistory.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Belum ada data.</td></tr>'; } else { globalHistory.slice(0, 5).forEach((m, i) => { let tgl = '-'; try{ tgl = new Date(m.date).toLocaleDateString('id-ID', {day:'numeric', month:'short'}); }catch(e){} let cls = (m.type === 'Expense') ? 'text-danger' : (m.type === 'Income' ? 'text-success' : 'text-primary'); let nom = (m.type === 'Expense') ? `- ${formatRp(m.amount)}` : `+ ${formatRp(m.amount)}`; if(m.type === 'Transfer') nom = formatRp(m.amount); tbody.innerHTML += `<tr><td>${i+1}</td><td>${tgl}</td><td class="small text-muted text-truncate" style="max-width:150px;">${m.note}</td><td class="text-end fw-bold ${cls}">${nom}</td></tr>`; }); } } let ctx = document.getElementById('chartDashboard'); if (ctx) { let totInc = 0, totExp = 0; if(globalHistory.length > 0) { globalHistory.forEach(m => { if (m.type === 'Income') totInc += m.amount; if (m.type === 'Expense') totExp += m.amount; }); } if (myChart) myChart.destroy(); let isDark = document.body.classList.contains('dark-mode'); myChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Pemasukan', 'Pengeluaran'], datasets: [{ data: [totInc, totExp], backgroundColor: ['#2ecc71', '#e74c3c'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: isDark ? '#fff' : '#666' } } } } }); } }
-  function renderPlans() { let tbody = document.getElementById('tblPlans'); if (!tbody) return; tbody.innerHTML = ''; if (!globalPlans || globalPlans.length === 0) { if(document.getElementById('emptyPlanMsg')) document.getElementById('emptyPlanMsg').style.display = 'block'; return; } if(document.getElementById('emptyPlanMsg')) document.getElementById('emptyPlanMsg').style.display = 'none'; let html = ''; globalPlans.forEach((p, idx) => { let tgl = '-'; try { tgl = new Date(p.date).toLocaleDateString('id-ID', {day:'numeric',month:'short'}); } catch(e){} let badge = (p.status === 'Lunas') ? '<span class="badge bg-success">Lunas</span>' : '<span class="badge bg-warning text-dark">Belum</span>'; let btn = (p.status === 'Lunas') ? '' : `<button class="btn btn-sm btn-outline-success" onclick="markAsLunas(${p.row}, '${p.name}', ${p.amount})">Lunas</button>`; html += `<tr><th scope="row">${idx+1}</th><td>${p.name}</td><td>${tgl}</td><td class="fw-bold text-primary">${formatRp(p.amount)}</td><td>${badge}</td><td>${btn}</td></tr>`; }); tbody.innerHTML = html; }
   function renderLineChartHistory(currentLiquid, totalPlan) { let ctx = document.getElementById('chartLineHistory'); if (!ctx || !globalHistory) return; let days = [], balances = [], tempLiquid = currentLiquid, today = new Date(), histIndex = 0; let startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1); for (let i = 0; i < 31; i++) { let d = new Date(); d.setDate(today.getDate() - i); if (d < startOfMonth) break; let dateStr = d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}); days.unshift(dateStr); balances.unshift(tempLiquid - totalPlan); while(histIndex < globalHistory.length) { let tx = globalHistory[histIndex]; let txDate = new Date(tx.date); if (isSameDay(txDate, d)) { if (tx.type === 'Expense') tempLiquid += tx.amount; else if (tx.type === 'Income') tempLiquid -= tx.amount; else if (tx.type === 'Transfer') { let sA = ASSET_KEYWORDS.some(k => tx.acc.toUpperCase().includes(k)), dA = ASSET_KEYWORDS.some(k => (tx.dest||"").toUpperCase().includes(k)); if (!sA && dA) tempLiquid += tx.amount; else if (sA && !dA) tempLiquid -= tx.amount; } histIndex++; } else if (txDate < d) { break; } else { histIndex++; } } } if (myLineChart) myLineChart.destroy(); let isDark = document.body.classList.contains('dark-mode'); let gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; myLineChart = new Chart(ctx, { type: 'line', data: { labels: days, datasets: [{ label: 'Sisa Uang', data: balances, borderColor: '#009d63', backgroundColor: (context) => { const ctx = context.chart.ctx; const gradient = ctx.createLinearGradient(0, 0, 0, 300); gradient.addColorStop(0, 'rgba(0, 157, 99, 0.4)'); gradient.addColorStop(1, 'rgba(0, 157, 99, 0.0)'); return gradient; }, borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 6, pointHitRadius: 30, pointBackgroundColor: '#ffffff', pointBorderColor: '#009d63', pointBorderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 8, displayColors: false, callbacks: { label: function(context) { return 'Rp ' + new Intl.NumberFormat('id-ID').format(context.parsed.y); } } } }, scales: { y: { beginAtZero: false, grid: { display: true, color: gridColor, borderDash: [5, 5] }, ticks: { display: false } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 7, autoSkip: true } } } } }); }
-  function isSameDay(d1, d2) { return d1.getDate() === d2.getDate() && d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear(); }
-  function renderReportTable(customData = null) { let tbody = document.getElementById('tblReportBody'); if (!tbody) return; tbody.innerHTML = ''; let dataToRender; if (customData && Array.isArray(customData)) { dataToRender = customData; } else if (filterState.isActive && filterState.startDate && filterState.endDate) { dataToRender = globalHistory.filter(m => { let txDate = new Date(m.date); return txDate >= filterState.startDate && txDate <= filterState.endDate; }); } else { dataToRender = globalHistory; } if (!dataToRender || dataToRender.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4">Tidak ada data transaksi.</td></tr>'; return; } let html = dataToRender.map((m, i) => { let tgl = '-'; try { let d = new Date(m.date); tgl = d.toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}); } catch(e){} let nominal = formatRp(m.amount); let color = 'text-dark'; let typeBadge = ''; if (m.type === 'Income') { color = 'text-success fw-bold'; nominal = '+ ' + nominal; typeBadge = '<span class="badge bg-success bg-opacity-10 text-success">Masuk</span>'; } else if (m.type === 'Expense') { color = 'text-danger fw-bold'; nominal = '- ' + nominal; typeBadge = '<span class="badge bg-danger bg-opacity-10 text-danger">Keluar</span>'; } else { color = 'text-primary fw-bold'; typeBadge = '<span class="badge bg-primary bg-opacity-10 text-primary">Transfer</span>'; } let akunDisplay = m.acc; if(m.type === 'Transfer') akunDisplay = `${m.acc} <i class="fas fa-arrow-right small text-muted mx-1"></i> ${m.dest}`; return `<tr><td>${i+1}</td><td class="small">${tgl}</td><td>${typeBadge}</td><td class="small">${m.cat}</td><td class="small text-muted">${m.note}</td><td class="small">${akunDisplay}</td><td class="text-end ${color}">${nominal}</td></tr>`; }).join(''); tbody.innerHTML = html; }
-  function handleFilterReport() { let startStr = document.getElementById('filterStart').value; let endStr = document.getElementById('filterEnd').value; if (!startStr || !endStr) { Swal.fire('Info', 'Harap pilih Tanggal Awal dan Akhir', 'info'); return; } let startDate = new Date(startStr); let endDate = new Date(endStr); endDate.setHours(23, 59, 59); filterState.isActive = true; filterState.startDate = startDate; filterState.endDate = endDate; renderReportTable(null); Swal.fire({ title: 'Filter Berhasil', text: `Menampilkan data terpilih.`, icon: 'success', timer: 1000, showConfirmButton: false }); }
-  function resetFilterReport() { document.getElementById('filterStart').value = ''; document.getElementById('filterEnd').value = ''; filterState.isActive = false; filterState.startDate = null; filterState.endDate = null; renderReportTable(null); }
-  function updateKat() { let tipe = document.getElementById('tipeSel').value; let katSel = document.getElementById('katSel'); if(!katSel) return; katSel.innerHTML = ''; let list = []; if (tipe === 'Income') { list = ['Gaji', 'Bonus', 'Tunjangan', 'Dividen', 'Penjualan', 'Refund', 'Hadiah', 'Freelance', 'Lainnya']; } else { list = ['Makan & Minum', 'Transportasi', 'Belanja', 'Tagihan (Listrik/Air/Net)', 'Pulsa & Data', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Cicilan/Utang', 'Perawatan Diri', 'Kendaraan', 'Amal & Donasi', 'Investasi', 'Lainnya']; } list.forEach(k => { let opt = document.createElement('option'); opt.value = k; opt.text = k; katSel.add(opt); }); }
-  function setupDropdownInput(allAccounts) { let s = document.getElementById('sumberSel'); if(s && s.options.length > 1 && s.options.length === allAccounts.length + 1) return; let opts = '<option value="" disabled selected>-- Pilih Akun --</option>'; allAccounts.forEach(acc => { opts += `<option value="${acc.name}">${acc.name}</option>`; }); ['sumberSel','sumberTfSel','tujuanTfSel','updateAkunSel'].forEach(id => { let el=document.getElementById(id); if(el) el.innerHTML = opts; }); updateKat(); }
-  function setMode(mode) { document.getElementById('inputMode').value = mode; ['transaksi', 'transfer', 'budget'].forEach(m => { document.getElementById('block-' + m).style.display = 'none'; let tab = document.getElementById('tab-' + m); if(tab) { tab.classList.remove('active', 'bg-white', 'shadow-sm', 'text-primary'); tab.classList.add('text-muted'); } }); document.getElementById('block-' + mode).style.display = 'block'; let act = document.getElementById('tab-' + mode); if(act) { act.classList.remove('text-muted'); act.classList.add('active', 'bg-white', 'shadow-sm', 'text-primary'); } let s=document.getElementById('sumberSel'), sT=document.getElementById('sumberTfSel'), tT=document.getElementById('tujuanTfSel'), b=document.getElementById('budgetNama'); if(s) s.required=false; if(sT) sT.required=false; if(tT) tT.required=false; if(b) b.required=false; if(mode==='transaksi') { if(s) s.required=true; updateKat(); } if(mode==='transfer') { sT.required=true; tT.required=true; } if(mode==='budget' && b) b.required=true; }
+
+    // function renderDashboardComponents() { let tbody = document.getElementById('tblDashboardMutasi'); if (tbody) { tbody.innerHTML = ''; if (!globalHistory || globalHistory.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Belum ada data.</td></tr>'; } else { globalHistory.slice(0, 5).forEach((m, i) => { let tgl = '-'; try{ tgl = new Date(m.date).toLocaleDateString('id-ID', {day:'numeric', month:'short'}); }catch(e){} let cls = (m.type === 'Expense') ? 'text-danger' : (m.type === 'Income' ? 'text-success' : 'text-primary'); let nom = (m.type === 'Expense') ? `- ${formatRp(m.amount)}` : `+ ${formatRp(m.amount)}`; if(m.type === 'Transfer') nom = formatRp(m.amount); tbody.innerHTML += `<tr><td>${i+1}</td><td>${tgl}</td><td class="small text-muted text-truncate" style="max-width:150px;">${m.note}</td><td class="text-end fw-bold ${cls}">${nom}</td></tr>`; }); } } let ctx = document.getElementById('chartDashboard'); if (ctx) { let totInc = 0, totExp = 0; if(globalHistory.length > 0) { globalHistory.forEach(m => { if (m.type === 'Income') totInc += m.amount; if (m.type === 'Expense') totExp += m.amount; }); } if (myChart) myChart.destroy(); let isDark = document.body.classList.contains('dark-mode'); myChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Pemasukan', 'Pengeluaran'], datasets: [{ data: [totInc, totExp], backgroundColor: ['#2ecc71', '#e74c3c'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: isDark ? '#fff' : '#666' } } } } }); } }
+
+    function renderDashboardComponents() {
+        // 1. RENDER TABEL MUTASI TERAKHIR
+        let tbody = document.getElementById('tblDashboardMutasi');
+        if (tbody) {
+            tbody.innerHTML = '';
+            if (!globalHistory || globalHistory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Belum ada data.</td></tr>';
+            } else {
+                globalHistory.slice(0, 5).forEach((m, i) => {
+                    let tgl = '-'; try { tgl = new Date(m.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }); } catch (e) { }
+                    let cls = (m.type === 'Expense') ? 'text-danger' : (m.type === 'Income' ? 'text-success' : 'text-primary');
+                    let nom = (m.type === 'Expense') ? `- ${formatRp(m.amount)}` : `+ ${formatRp(m.amount)}`;
+                    if (m.type === 'Transfer') nom = formatRp(m.amount);
+                    tbody.innerHTML += `<tr><td>${i + 1}</td><td>${tgl}</td><td class="small text-muted text-truncate" style="max-width:150px;">${m.note}</td><td class="text-end fw-bold ${cls}">${nom}</td></tr>`;
+                });
+            }
+        }
+
+        // 2. RENDER CHART DOUGHNUT DASHBOARD (UPDATED)
+        let ctx = document.getElementById('chartDashboard');
+        if (ctx) {
+            let totInc = 0, totExp = 0;
+            if (globalHistory.length > 0) {
+                globalHistory.forEach(m => {
+                    if (m.type === 'Income') totInc += m.amount;
+                    if (m.type === 'Expense') totExp += m.amount;
+                });
+            }
+
+            if (myChart) myChart.destroy();
+            let isDark = document.body.classList.contains('dark-mode');
+
+            myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pemasukan', 'Pengeluaran'],
+                    datasets: [{
+                        data: [totInc, totExp],
+                        backgroundColor: ['#2ecc71', '#e74c3c'],
+                        borderWidth: 2,
+                        borderColor: isDark ? '#1e1e1e' : '#ffffff',
+                        hoverOffset: 20, // <--- EFEK BOUNCE (POP OUT)
+                        hoverBorderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: 15 // <--- PADDING AGAR TIDAK KEPOTONG SAAT BOUNCE
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: isDark ? '#fff' : '#666', boxWidth: 12, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    let label = context.label || '';
+                                    let value = context.parsed;
+                                    let total = context.chart._metasets[context.datasetIndex].total;
+                                    let percentage = ((value / total) * 100).toFixed(1) + "%";
+                                    return label + ': ' + formatRp(value) + ' (' + percentage + ')';
+                                }
+                            }
+                        }
+                    },
+                    animation: { animateScale: true, animateRotate: true }
+                }
+            });
+        }
+    }
   function handleSimpan(e) { e.preventDefault(); let mode = document.getElementById('inputMode').value; let nominal = Number(document.getElementById('inputJumlah').value.replace(/\./g, "")); let btn = document.getElementById('btnSimpan'); let ori = btn.innerHTML; if (mode === 'budget') { let nama = document.getElementById('budgetNama').value.toUpperCase(); let tgl = document.querySelector('input[name="tanggal"]').value; let ket = document.getElementById('inputKet').value.toUpperCase(); btn.disabled=true; btn.innerHTML='Menyimpan...'; google.script.run.withSuccessHandler(()=>{ btn.disabled=false; btn.innerHTML=ori; Swal.fire('Sukses','Rencana Disimpan','success'); document.getElementById('formInput').reset(); document.querySelector('input[name="tanggal"]').valueAsDate = new Date(); refreshData(true); }).tambahRencana(nama, nominal, tgl, ket); return; } let sumber = (mode === 'transfer') ? document.getElementById('sumberTfSel').value : document.getElementById('sumberSel').value; let isExp = (mode === 'transfer' || document.getElementById('tipeSel').value === 'Expense'); if (isExp && sumber) { if (nominal > (globalBalances[sumber]||0)) { Swal.fire('Gagal', 'Saldo Tidak Cukup!', 'error'); return; } } btn.disabled=true; btn.innerHTML='Menyimpan...'; google.script.run.withSuccessHandler(()=>{ btn.disabled=false; btn.innerHTML=ori; Swal.fire('Sukses','Data Disimpan','success'); document.getElementById('formInput').reset(); document.querySelector('input[name="tanggal"]').valueAsDate = new Date(); updateKat(); refreshData(true); }).simpanData(document.getElementById('formInput')); }
   function handleUpdateProfile(e){ e.preventDefault(); var ou=document.getElementById('oldUser').value; var op=e.target.oldPass.value; var nu=e.target.newPass.value; google.script.run.withSuccessHandler(r=>{ if(r.success){Swal.fire('Sukses','Password berhasil diubah. Silakan login ulang.', 'success').then(()=>{doLogout()})} else {Swal.fire('Gagal',r.message,'error')} }).updateUserProfile(ou,op,nu); }
   function showAddAccountModal() { Swal.fire({ title: 'Akun Baru', html: `<input id="swal-nama" class="form-control mb-2" placeholder="Nama"><select id="swal-type" class="form-select mb-2"><option>Bank</option><option>E-Wallet</option><option>Tunai</option></select><input id="swal-saldo" class="form-control" placeholder="Saldo" onkeyup="formatRupiahTyping(this)">`, showCancelButton: true, preConfirm:()=>{ return {nama:document.getElementById('swal-nama').value, tipe:document.getElementById('swal-type').value, saldo:document.getElementById('swal-saldo').value.replace(/\./g,'')} } }).then(res => { if(res.isConfirmed && res.value.nama) { Swal.showLoading(); google.script.run.withSuccessHandler(()=>{Swal.fire('Sukses','','success'); refreshData(true);}).tambahAkunBaru(res.value.nama, res.value.tipe, Number(res.value.saldo)); } }); }
   function handleUpdateSaldo(e) { e.preventDefault(); let akun = document.getElementById('updateAkunSel').value; let nominal = document.getElementById('updateNominal').value.replace(/\./g, ''); if (!akun) return; Swal.fire({title:'Menyimpan...', didOpen:()=>Swal.showLoading()}); google.script.run.withSuccessHandler(()=>{ Swal.fire('Sukses','','success'); document.getElementById('updateNominal').value=''; refreshData(true); }).updateSaldoAwal(akun, Number(nominal)); }
-  function handleLogin(e){ e.preventDefault(); let u=document.getElementById('uName').value, p=document.getElementById('uPass').value; let btn=e.target.querySelector('button'); let ori=btn.innerHTML; btn.innerHTML='<i class="fas fa-spinner fa-spin me-2"></i>Memproses...'; btn.disabled=true; google.script.run.withSuccessHandler(r=>{ btn.innerHTML=ori; btn.disabled=false; if(r.success){ sessionStorage.setItem('isLoggedIn','true'); sessionStorage.setItem('username',u); Swal.fire({ title:'Login Berhasil!', text:'Selamat datang kembali.', icon:'success', timer:1500, showConfirmButton:false }).then(()=>{ showApp(); }); } else { Swal.fire({ title:'Akses Ditolak', text:r.message, icon:'error', confirmButtonText:'Coba Lagi', confirmButtonColor:'#d33' }); } }).loginUser(u,p); }
+    function handleLogin(e) { e.preventDefault(); let u = document.getElementById('uName').value; let p = document.getElementById('uPass').value; let btn = e.target.querySelector('button'); let oriText = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Cek Akun...'; btn.disabled = true; google.script.run.withSuccessHandler(function (response) { btn.innerHTML = oriText; btn.disabled = false; if (response && response.success === true) { sessionStorage.setItem('isLoggedIn', 'true'); sessionStorage.setItem('username', u); Swal.fire({ title: 'Login Berhasil!', text: 'Mengalihkan ke Dashboard...', icon: 'success', timer: 1000, showConfirmButton: false }).then(() => { showApp(); }); } else { let pesan = (response && response.message) ? response.message : "Username/Password Salah!"; Swal.fire({ title: 'Gagal Masuk', text: pesan, icon: 'error', confirmButtonColor: '#d33', confirmButtonText: 'Coba Lagi' }); document.getElementById('uPass').value = ''; } }).withFailureHandler(function (error) { btn.innerHTML = oriText; btn.disabled = false; Swal.fire({ title: 'Error Sistem', text: error.message, icon: 'warning' }); }).loginUser(u, p); }
+    function handleForgotPassword() { Swal.fire({ title: 'Lupa Password?', html: `<p class="small text-muted">Masukkan Username & Email yang terdaftar.</p><input id="swal-fp-user" class="form-control mb-3" placeholder="Username"><input id="swal-fp-email" class="form-control mb-3" placeholder="Email Terdaftar">`, showCancelButton: true, confirmButtonText: 'Kirim Password', confirmButtonColor: '#009d63', preConfirm: () => { const u = document.getElementById('swal-fp-user').value; const e = document.getElementById('swal-fp-email').value; if (!u || !e) { Swal.showValidationMessage('Harap isi keduanya!'); } return { user: u, email: e }; } }).then((result) => { if (result.isConfirmed) { Swal.fire({ title: 'Memproses...', text: 'Mencari data Anda...', didOpen: () => Swal.showLoading() }); google.script.run.withSuccessHandler((res) => { if (res.success) { Swal.fire('Berhasil!', 'Silakan cek Inbox/Spam email Anda.', 'success'); } else { Swal.fire('Gagal', res.message, 'error'); } }).withFailureHandler((err) => { Swal.fire('Error', err.message, 'error'); }).processForgotPassword(result.value.user, result.value.email); } }); }
+
   function switchPage(p,e){ document.querySelectorAll('.page-section').forEach(x=>x.style.display='none'); let t=document.getElementById('page-'+p);if(t)t.style.display='block'; safeSetText('pageTitle',p.toUpperCase()); if(e){document.querySelectorAll('.list-group-item').forEach(l=>l.classList.remove('active'));e.classList.add('active')} if(window.innerWidth<768)document.getElementById("wrapper").classList.remove("toggled"); }
   document.getElementById("menu-toggle").addEventListener("click",e=>{e.preventDefault();document.getElementById("wrapper").classList.toggle("toggled")});
   function showLogin(){ document.getElementById('login-container').style.display='flex'; document.getElementById('app-container').style.display='none'; }
@@ -233,4 +611,10 @@
   function formatRupiahTyping(i) { i.value = i.value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
   function safeSetText(id, t) { let el = document.getElementById(id); if (el) el.innerText = t; }
   function isSameDay(d1, d2) { return d1.getDate() === d2.getDate() && d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear(); }
+    function generateColorPalette(count) { let palette = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22', '#1abc9c', '#34495e', '#d35400', '#c0392b', '#8e44ad', '#2980b9', '#27ae60', '#f39c12']; while (palette.length < count) { let r = Math.floor(Math.random() * 200 + 50); let g = Math.floor(Math.random() * 200 + 50); let b = Math.floor(Math.random() * 200 + 50); palette.push(`rgb(${r},${g},${b})`); } return palette.slice(0, count); }
+    function updateKat() { let tipe = document.getElementById('tipeSel').value; let katSel = document.getElementById('katSel'); if (!katSel) return; katSel.innerHTML = ''; let list = (tipe === 'Income') ? ['Gaji', 'Bonus', 'Tunjangan', 'Dividen', 'Penjualan', 'Refund', 'Hadiah', 'Freelance', 'Lainnya'] : ['Makan & Minum', 'Transportasi', 'Belanja', 'Tagihan', 'Pulsa & Data', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Cicilan', 'Perawatan Diri', 'Kendaraan', 'Amal', 'Investasi', 'Lainnya']; list.forEach(k => { let opt = document.createElement('option'); opt.value = k; opt.text = k; katSel.add(opt); }); }
+    function setMode(mode) { document.getElementById('inputMode').value = mode;['transaksi', 'transfer', 'budget'].forEach(m => { document.getElementById('block-' + m).style.display = 'none'; let tab = document.getElementById('tab-' + m); if (tab) { tab.classList.remove('active', 'bg-white', 'shadow-sm', 'text-primary'); tab.classList.add('text-muted'); } }); document.getElementById('block-' + mode).style.display = 'block'; let act = document.getElementById('tab-' + mode); if (act) { act.classList.remove('text-muted'); act.classList.add('active', 'bg-white', 'shadow-sm', 'text-primary'); } let s = document.getElementById('sumberSel'), sT = document.getElementById('sumberTfSel'), tT = document.getElementById('tujuanTfSel'), b = document.getElementById('budgetNama'); if (s) s.required = false; if (sT) sT.required = false; if (tT) tT.required = false; if (b) b.required = false; if (mode === 'transaksi') { if (s) s.required = true; updateKat(); } if (mode === 'transfer') { sT.required = true; tT.required = true; } if (mode === 'budget' && b) b.required = true; }
+
+    function showInvestDetails() { if (detectedAssets.length === 0) { Swal.fire('Info', 'Belum ada akun aset terdeteksi.', 'info'); } else { let listHtml = '<ul style="text-align:left;">'; detectedAssets.forEach(item => { listHtml += `<li>${item}</li>`; }); listHtml += '</ul>'; Swal.fire({ title: 'Rincian Aset', html: listHtml, icon: 'info' }); } }
+    function markAsLunas(row, nama, nominal) { let allAcc = [...(globalSources.banks || []), ...(globalSources.wallets || []), ...(globalSources.cash || [])]; let options = '<option value="" disabled selected>-- Pilih Sumber Dana --</option>'; allAcc.forEach(acc => { let uName = acc.name.toUpperCase(); let isAsset = ASSET_KEYWORDS.some(k => uName.includes(k)); if (!isAsset) { let saldo = globalBalances[acc.name] || 0; options += `<option value="${acc.name}">${acc.name} (Sisa: ${formatRp(saldo)})</option>`; } }); Swal.fire({ title: 'Bayar Rencana', html: `<div class="text-start mb-3"><p class="small text-muted mb-1">Nama Rencana</p><h5 class="fw-bold text-dark">${nama}</h5><p class="small text-muted mb-0">Estimasi: <span class="text-primary fw-bold">${formatRp(nominal)}</span></p></div><hr class="my-3"><div class="text-start"><label class="small fw-bold text-muted mb-1">NOMINAL DIBAYAR (REAL)</label><input id="swal-bayar-real" class="form-control fw-bold text-primary mb-3" value="${new Intl.NumberFormat('id-ID').format(nominal)}" onkeyup="formatRupiahTyping(this)"><label class="small fw-bold text-muted mb-1">SUMBER DANA</label><select id="swal-sumber-bayar" class="form-select mb-2">${options}</select></div>`, showCancelButton: true, confirmButtonText: 'Proses Bayar', confirmButtonColor: '#009d63', preConfirm: () => { let akun = document.getElementById('swal-sumber-bayar').value; let bayarStr = document.getElementById('swal-bayar-real').value; let cleanBayar = bayarStr.replace(/[^0-9]/g, ''); let bayarVal = Number(cleanBayar); if (!akun) { Swal.showValidationMessage('Harap pilih akun!'); return false; } if (!bayarVal || bayarVal <= 0) { Swal.showValidationMessage('Nominal salah!'); return false; } return { akun: akun, nominalBayar: bayarVal }; } }).then((result) => { if (result.isConfirmed) { let akunSumber = result.value.akun; let nominalBayar = result.value.nominalBayar; let saldoAda = globalBalances[akunSumber] || 0; if (saldoAda < nominalBayar) { Swal.fire('Gagal', 'Saldo tidak cukup!', 'error'); return; } Swal.fire({ title: 'Memproses...', didOpen: () => Swal.showLoading() }); google.script.run.withSuccessHandler((res) => { Swal.fire('Sukses', 'Pembayaran Berhasil', 'success'); refreshData(true); }).bayarRencana(row, nama, nominal, nominalBayar, akunSumber); } }); }
 </script>

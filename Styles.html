@@ -1,4 +1,108 @@
 <style>
+  /* CSS BAWAAN */
+  :root {
+    --primary-color: #009d63;
+    --secondary-color: #2c3e50;
+    --bg-light: #f4f6f9;
+    --text-dark: #333;
+    --card-bg: #ffffff;
+  }
+
+  body {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .card,
+  .list-group-item,
+  .bg-white {
+    background-color: var(--card-bg) !important;
+    transition: background-color 0.3s;
+  }
+
+  /* DARK MODE STYLES */
+  body.dark-mode {
+    --bg-light: #121212;
+    --text-dark: #e0e0e0;
+    --card-bg: #1e1e1e;
+  }
+
+  body.dark-mode .text-muted {
+    color: #aaa !important;
+  }
+
+  body.dark-mode .table {
+    color: #e0e0e0;
+  }
+
+  body.dark-mode .table-hover tbody tr:hover {
+    color: #fff;
+    background-color: #333;
+  }
+
+  body.dark-mode .form-control,
+  body.dark-mode .form-select {
+    background-color: #2d2d2d;
+    border-color: #444;
+    color: #fff;
+  }
+
+  body.dark-mode .form-control::placeholder {
+    color: #888;
+  }
+
+  body.dark-mode .navbar-light .navbar-brand,
+  body.dark-mode .navbar-light .navbar-nav .nav-link {
+    color: #e0e0e0;
+  }
+
+  body.dark-mode .border-bottom {
+    border-color: #444 !important;
+  }
+
+  /* Sidebar */
+  #sidebar-wrapper {
+    min-height: 100vh;
+    margin-left: -15rem;
+    transition: margin 0.25s ease-out;
+    background-color: var(--secondary-color);
+    color: #fff;
+  }
+
+  #sidebar-wrapper .list-group-item {
+    background-color: transparent !important;
+    color: rgba(255, 255, 255, 0.7);
+    border: none;
+  }
+
+  #sidebar-wrapper .list-group-item.active {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff;
+    border-left: 4px solid #fff;
+  }
+
+  #wrapper.toggled #sidebar-wrapper {
+    margin-left: 0;
+  }
+
+  @media (min-width: 768px) {
+    #sidebar-wrapper {
+      margin-left: 0;
+    }
+
+    #page-content-wrapper {
+      min-width: 0;
+      width: 100%;
+    }
+
+    #wrapper.toggled #sidebar-wrapper {
+      margin-left: -15rem;
+    }
+  }
+
   /* --- 1. CONFIG WARNA --- */
   :root {
     --primary: #2c3e50;
