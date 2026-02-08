@@ -357,7 +357,7 @@ function loginUser(u, p) {
     var inputU = String(u).trim();
     var inputP = String(p).trim();
 
-  // 2. CEK VIA SHEET 'user' (OPSIONAL - PRIORITAS UTAMA)
+    // 2. CEK VIA SHEET 'user' (OPSIONAL - PRIORITAS UTAMA)
     var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("user");
     if (s) {
       var d = s.getDataRange().getValues();

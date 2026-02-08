@@ -38,7 +38,7 @@
         if (sessionStorage.getItem('isLoggedIn') === 'true' &&
             document.getElementById('page-input').style.display !== 'block' &&
             !Swal.isVisible()) {
-            refreshData(true);
+            refreshData(true); 
         }
     }, 60000); 
   };
@@ -54,11 +54,11 @@
       let textColor = isDark ? '#fff' : '#666';
       let gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
 
-      [myChart, myLineChart, myAssetDoughnut, myAssetLine, reportLineChart, reportCatChart].forEach(c => {
+      [myChart, myLineChart, myAssetDoughnut, myAssetLine, reportLineChart, reportCatChart].forEach(c => { 
           if (c) {
               if (c.options.plugins.legend) c.options.plugins.legend.labels.color = textColor;
               if (c.options.scales && c.options.scales.y) c.options.scales.y.grid.color = gridColor;
-              c.update();
+              c.update(); 
           } 
       });
   }
@@ -91,15 +91,15 @@
       allAcc.forEach(acc => {
           let val = globalBalances[acc.name] || 0;
           totalSemua += val; 
-
+    
         // Deteksi Aset
         if (ASSET_KEYWORDS.some(k => acc.name.toUpperCase().includes(k))) {
             totalInvestasi += val;
-            detectedAssets.push(`${acc.name}: ${formatRp(val)}`);
+            detectedAssets.push(`${acc.name}: ${formatRp(val)}`); 
         }
 
         // Hitung Group Bank vs Wallet
-        if (globalSources.banks.some(b => b.name === acc.name)) sumBank += val;
+        if (globalSources.banks.some(b => b.name === acc.name)) sumBank += val; 
         else sumWallet += val;
     });
 
@@ -128,203 +128,234 @@
     renderDashboardComponents();
     renderLineChartHistory(totalSemua - totalInvestasi, totalRencana);
       renderAssetCharts(allAcc, globalBalances, totalInvestasi);
+      populateCategoryFilter();
   }
+    // Fungsi Mengisi Dropdown Filter Kategori Otomatis
+    function populateCategoryFilter() {
+        let sel = document.getElementById('filterCategory');
+        if (!sel) return;
 
+      // Ambil kategori unik dari history yang ada
+      let uniqueCats = [...new Set(globalHistory.map(item => item.cat))].sort();
+
+      // Simpan pilihan user sekarang (biar gak kereset saat refresh)
+      let currentVal = sel.value;
+
+      let html = '<option value="">-- Semua Kategori --</option>';
+      uniqueCats.forEach(c => {
+          if (c) html += `<option value="${c}">${c}</option>`;
+      });
+
+      sel.innerHTML = html;
+      sel.value = currentVal; // Balikin pilihan user
+  }
   // ===========================================
     // 4. CHART REPORT (LINE & DONUT HOVER)
   // ===========================================
     function renderReportTable(customData = null) {
         let tbody = document.getElementById('tblReportBody'); if (!tbody) return;
         let data = globalHistory;
-        if (customData) data = customData;
-        else if (filterState.isActive) data = globalHistory.filter(m => { let d = new Date(m.date); return d >= filterState.startDate && d <= filterState.endDate; });
-
+        if (customData) data = customData; 
+      else if (filterState.isActive) {
+          data = globalHistory.filter(m => {
+              let d = new Date(m.date);
+              // Cek Tanggal
+              let dateMatch = d >= filterState.startDate && d <= filterState.endDate;
+              // Cek Kategori (Kalau user pilih kategori, harus cocok)
+              let catMatch = true;
+              if (filterState.category && filterState.category !== "") {
+                  catMatch = m.cat === filterState.category;
+              }
+    
+              return dateMatch && catMatch;
+          });
+      }
       renderReportCharts(data); // Render Grafik Laporan
 
-            ensurePaginationContainers('page-report', 'report');
-            if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4">Tidak ada data.</td></tr>'; renderPaginationUI(0, 1, 'report'); return; }
+      ensurePaginationContainers('page-report', 'report');
+      if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4">Tidak ada data.</td></tr>'; renderPaginationUI(0, 1, 'report'); return; }
 
-            let total = data.length; let pages = Math.ceil(total / rowsPerPage);
-            if (pageState.report > pages) pageState.report = 1;
-            let start = (pageState.report - 1) * rowsPerPage;
-            let sliced = data.slice(start, start + rowsPerPage);
+      let total = data.length; let pages = Math.ceil(total / rowsPerPage);
+      if (pageState.report > pages) pageState.report = 1;
+      let start = (pageState.report - 1) * rowsPerPage;
+      let sliced = data.slice(start, start + rowsPerPage);
 
-            let html = sliced.map((m, i) => {
-                let idx = start + i + 1;
-                let tgl = '-'; try { tgl = new Date(m.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { }
-                let nom = formatRp(m.amount);
-                let col = 'text-dark', badge = '';
-                if (m.type === 'Income') { col = 'text-success fw-bold'; nom = '+ ' + nom; badge = '<span class="badge bg-success bg-opacity-10 text-success">Masuk</span>'; }
-                else if (m.type === 'Expense') { col = 'text-danger fw-bold'; nom = '- ' + nom; badge = '<span class="badge bg-danger bg-opacity-10 text-danger">Keluar</span>'; }
-                else { col = 'text-primary fw-bold'; badge = '<span class="badge bg-primary bg-opacity-10 text-primary">Transfer</span>'; }
-                let akun = m.acc; if (m.type === 'Transfer') akun = `${m.acc} <i class="fas fa-arrow-right small text-muted mx-1"></i> ${m.dest || ''}`;
-                return `<tr><td>${idx}</td><td class="small">${tgl}</td><td>${badge}</td><td class="small">${m.cat}</td><td class="small text-muted">${m.note}</td><td class="small">${akun}</td><td class="text-end ${col}">${nom}</td></tr>`;
-            }).join('');
-            tbody.innerHTML = html;
-            renderPaginationUI(total, pageState.report, 'report');
-        }
+      let html = sliced.map((m, i) => {
+          let idx = start + i + 1;
+          let tgl = '-'; try { tgl = new Date(m.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { }
+          let nom = formatRp(m.amount);
+          let col = 'text-dark', badge = '';
+          if (m.type === 'Income') { col = 'text-success fw-bold'; nom = '+ ' + nom; badge = '<span class="badge bg-success bg-opacity-10 text-success">Masuk</span>'; }
+          else if (m.type === 'Expense') { col = 'text-danger fw-bold'; nom = '- ' + nom; badge = '<span class="badge bg-danger bg-opacity-10 text-danger">Keluar</span>'; }
+          else { col = 'text-primary fw-bold'; badge = '<span class="badge bg-primary bg-opacity-10 text-primary">Transfer</span>'; }
+          let akun = m.acc; if (m.type === 'Transfer') akun = `${m.acc} <i class="fas fa-arrow-right small text-muted mx-1"></i> ${m.dest || ''}`;
+          return `<tr><td>${idx}</td><td class="small">${tgl}</td><td>${badge}</td><td class="small">${m.cat}</td><td class="small text-muted">${m.note}</td><td class="small">${akun}</td><td class="text-end ${col}">${nom}</td></tr>`;
+      }).join('');
+      tbody.innerHTML = html;
+      renderPaginationUI(total, pageState.report, 'report');
+  }
 
-        function renderReportCharts(data) {
-            // Data Line Chart
-            let monthlyData = {};
-            data.forEach(m => {
-                let d = new Date(m.date);
-                let key = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2);
-                let label = d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
-                if (!monthlyData[key]) monthlyData[key] = { label: label, inc: 0, exp: 0 };
-                if (m.type === 'Income') monthlyData[key].inc += m.amount;
-                if (m.type === 'Expense') monthlyData[key].exp += m.amount;
-            });
+    function renderReportCharts(data) {
+        // Data Line Chart
+        let monthlyData = {};
+        data.forEach(m => {
+            let d = new Date(m.date);
+            let key = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2);
+            let label = d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+            if (!monthlyData[key]) monthlyData[key] = { label: label, inc: 0, exp: 0 };
+            if (m.type === 'Income') monthlyData[key].inc += m.amount;
+            if (m.type === 'Expense') monthlyData[key].exp += m.amount;
+        });
 
-            let sortedKeys = Object.keys(monthlyData).sort();
-            let labelsLine = sortedKeys.map(k => monthlyData[k].label);
-            let dataInc = sortedKeys.map(k => monthlyData[k].inc);
-            let dataExp = sortedKeys.map(k => monthlyData[k].exp);
+      let sortedKeys = Object.keys(monthlyData).sort();
+      let labelsLine = sortedKeys.map(k => monthlyData[k].label);
+      let dataInc = sortedKeys.map(k => monthlyData[k].inc);
+      let dataExp = sortedKeys.map(k => monthlyData[k].exp);
 
-            // Data Donut Chart
-            let catData = {};
-            data.filter(m => m.type === 'Expense').forEach(m => {
-                let k = m.cat || 'Lainnya';
-                if (!catData[k]) catData[k] = 0;
-                catData[k] += m.amount;
-            });
+      // Data Donut Chart
+      let catData = {};
+      data.filter(m => m.type === 'Expense').forEach(m => {
+          let k = m.cat || 'Lainnya';
+          if (!catData[k]) catData[k] = 0;
+          catData[k] += m.amount;
+      });
 
-            let sortedCats = Object.keys(catData).sort((a, b) => catData[b] - catData[a]);
-            let labelsCat = sortedCats;
-            let valuesCat = sortedCats.map(k => catData[k]);
-            let colorsCat = generateColorPalette(labelsCat.length);
+      let sortedCats = Object.keys(catData).sort((a, b) => catData[b] - catData[a]);
+      let labelsCat = sortedCats;
+      let valuesCat = sortedCats.map(k => catData[k]);
+      let colorsCat = generateColorPalette(labelsCat.length); 
 
-            // Render Line
-            let ctxLine = document.getElementById('chartReportLine');
-            if (ctxLine) {
-                if (reportLineChart) reportLineChart.destroy();
-                let isDark = document.body.classList.contains('dark-mode');
-                let gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-                reportLineChart = new Chart(ctxLine, {
-                    type: 'line',
-                    data: {
-                        labels: labelsLine,
-                        datasets: [
-                            { label: 'Pemasukan', data: dataInc, borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.1)', tension: 0.4, fill: true },
-                            { label: 'Pengeluaran', data: dataExp, borderColor: '#e74c3c', backgroundColor: 'rgba(231, 76, 60, 0.1)', tension: 0.4, fill: true }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        interaction: { mode: 'index', intersect: false },
-                        plugins: { legend: { position: 'top', labels: { color: isDark ? '#fff' : '#666' } } },
-                        scales: { y: { grid: { color: gridColor }, ticks: { color: isDark ? '#aaa' : '#666' } }, x: { grid: { display: false }, ticks: { color: isDark ? '#aaa' : '#666' } } },
-                        animation: { duration: 1500, easing: 'easeOutQuart' }
-                    }
-                });
-            }
+      // Render Line
+      let ctxLine = document.getElementById('chartReportLine');
+      if (ctxLine) {
+          if (reportLineChart) reportLineChart.destroy();
+          let isDark = document.body.classList.contains('dark-mode');
+          let gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+          reportLineChart = new Chart(ctxLine, {
+              type: 'line',
+              data: {
+                  labels: labelsLine,
+                  datasets: [
+                      { label: 'Pemasukan', data: dataInc, borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.1)', tension: 0.4, fill: true },
+                      { label: 'Pengeluaran', data: dataExp, borderColor: '#e74c3c', backgroundColor: 'rgba(231, 76, 60, 0.1)', tension: 0.4, fill: true }
+                  ]
+              },
+              options: {
+                  responsive: true, maintainAspectRatio: false,
+                  interaction: { mode: 'index', intersect: false },
+                  plugins: { legend: { position: 'top', labels: { color: isDark ? '#fff' : '#666' } } },
+                  scales: { y: { grid: { color: gridColor }, ticks: { color: isDark ? '#aaa' : '#666' } }, x: { grid: { display: false }, ticks: { color: isDark ? '#aaa' : '#666' } } },
+                  animation: { duration: 1500, easing: 'easeOutQuart' }
+              }
+          });
+      }
 
-            // Render Donut (With Hover Bounce)
-            let ctxDonut = document.getElementById('chartReportCategory');
-            if (ctxDonut) {
-                if (reportCatChart) reportCatChart.destroy();
-                let isDark = document.body.classList.contains('dark-mode');
-                reportCatChart = new Chart(ctxDonut, {
-                    type: 'doughnut',
-                    data: {
-                        labels: labelsCat,
-                        datasets: [{
-                            data: valuesCat,
-                            backgroundColor: colorsCat,
-                            borderWidth: 2,
-                            borderColor: isDark ? '#1e1e1e' : '#ffffff',
-                            hoverOffset: 25, // BOUNCE EFFECT
-                            hoverBorderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        cutout: '30%',
-                        layout: { padding: 20 },
-                        plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 }, color: isDark ? '#fff' : '#666' } },
-                            tooltip: { callbacks: { label: function (context) { let label = context.label || ''; let value = context.parsed; let total = context.chart._metasets[context.datasetIndex].total; let percentage = ((value / total) * 100).toFixed(1) + "%"; return label + ': ' + formatRp(value) + ' (' + percentage + ')'; } } }
-                        },
-                        animation: { animateScale: true, animateRotate: true }
-                    }
-                });
-            }
-        }
+      // Render Donut (With Hover Bounce)
+      let ctxDonut = document.getElementById('chartReportCategory');
+      if (ctxDonut) {
+          if (reportCatChart) reportCatChart.destroy();
+          let isDark = document.body.classList.contains('dark-mode');
+          reportCatChart = new Chart(ctxDonut, {
+              type: 'doughnut',
+              data: {
+                  labels: labelsCat,
+                  datasets: [{
+                      data: valuesCat,
+                      backgroundColor: colorsCat,
+                      borderWidth: 2,
+                      borderColor: isDark ? '#1e1e1e' : '#ffffff',
+                      hoverOffset: 25, // BOUNCE EFFECT
+                      hoverBorderWidth: 0
+                  }]
+              },
+              options: {
+                  responsive: true, maintainAspectRatio: false,
+                  cutout: '30%',
+                  layout: { padding: 20 },
+                  plugins: {
+                      legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 }, color: isDark ? '#fff' : '#666' } },
+                      tooltip: { callbacks: { label: function (context) { let label = context.label || ''; let value = context.parsed; let total = context.chart._metasets[context.datasetIndex].total; let percentage = ((value / total) * 100).toFixed(1) + "%"; return label + ': ' + formatRp(value) + ' (' + percentage + ')'; } } }
+                  },
+                  animation: { animateScale: true, animateRotate: true }
+              }
+          });
+      }
+  }
 
-        // ===========================================
-        // 5. HELPER RENDERERS (YANG HILANG SEBELUMNYA ADA DI SINI)
-        // ===========================================
+    // ===========================================
+    // 5. HELPER RENDERERS (YANG HILANG SEBELUMNYA ADA DI SINI)
+    // ===========================================
 
-        // --- FUNGSI RENDER SALDO & CARD ---
-        function renderSaldoSection(balances) {
-            let cBank = document.getElementById('container-bank');
-            let cWallet = document.getElementById('container-wallet');
+    // --- FUNGSI RENDER SALDO & CARD ---
+    function renderSaldoSection(balances) {
+        let cBank = document.getElementById('container-bank');
+        let cWallet = document.getElementById('container-wallet');
 
-            if (cBank) cBank.innerHTML = generateCardHtml(globalSources.banks, balances, 'text-primary');
-            if (cWallet) cWallet.innerHTML = generateCardHtml([...(globalSources.wallets || []), ...(globalSources.cash || [])], balances, 'text-success');
-        }
+        if (cBank) cBank.innerHTML = generateCardHtml(globalSources.banks, balances, 'text-primary'); 
+      if (cWallet) cWallet.innerHTML = generateCardHtml([...(globalSources.wallets || []), ...(globalSources.cash || [])], balances, 'text-success');
+  }
 
-        function generateCardHtml(list, balances, colorClass) {
-            if (!list) return '';
-            return list.map((acc, index) => {
-                let bal = balances[acc.name] || 0;
-                let uName = acc.name.toUpperCase(); 
+    function generateCardHtml(list, balances, colorClass) {
+        if (!list) return '';
+        return list.map((acc, index) => {
+            let bal = balances[acc.name] || 0;
+            let uName = acc.name.toUpperCase(); 
           let isAsset = ASSET_KEYWORDS.some(k => uName.includes(k)); 
-          let badge = isAsset ? '<span class="badge bg-warning text-dark ms-2 small" style="font-size:0.6em">INV</span>' : '';
+          let badge = isAsset ? '<span class="badge bg-warning text-dark ms-2 small" style="font-size:0.6em">INV</span>' : ''; 
           let delay = index * 100; 
           
           return `<div class="col-md-3 mb-3 animate-entry" style="animation-delay: ${delay}ms"><div class="p-3 bg-white shadow-sm d-flex justify-content-between align-items-center rounded hover-card"><div><h3 class="fs-5">${formatRp(bal)}</h3><p class="fs-6 text-muted mb-0">${acc.name} ${badge}</p></div></div></div>`;
       }).join('');
+  }
+
+    // --- FUNGSI RENDER PORTFOLIO (YANG TADI ERROR) ---
+    function renderPortfolioSection(allAccounts, balances) {
+        let tbody = document.getElementById('tbodyAsset');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        let found = false;
+        let counter = 1;
+
+        allAccounts.forEach(acc => {
+            if (ASSET_KEYWORDS.some(k => acc.name.toUpperCase().includes(k))) {
+                found = true;
+                let bal = balances[acc.name] || 0;
+                let color = bal > 0 ? 'fw-bold' : 'text-muted';
+                tbody.innerHTML += `<tr><td>${counter++}</td><td>${acc.name}</td><td class="text-end ${color}">${formatRp(bal)}</td></tr>`;
             }
+        });
 
-            // --- FUNGSI RENDER PORTFOLIO (YANG TADI ERROR) ---
-            function renderPortfolioSection(allAccounts, balances) {
-                let tbody = document.getElementById('tbodyAsset');
-                if (!tbody) return;
-                tbody.innerHTML = '';
-
-                let found = false;
-                let counter = 1;
-
-                allAccounts.forEach(acc => {
-                    if (ASSET_KEYWORDS.some(k => acc.name.toUpperCase().includes(k))) {
-                        found = true;
-                        let bal = balances[acc.name] || 0;
-                        let color = bal > 0 ? 'fw-bold' : 'text-muted';
-                        tbody.innerHTML += `<tr><td>${counter++}</td><td>${acc.name}</td><td class="text-end ${color}">${formatRp(bal)}</td></tr>`;
-                    }
-                }); 
-        
-            if (!found) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted small">Belum ada akun aset terdeteksi.</td></tr>';
-            }
+        if (!found) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted small">Belum ada akun aset terdeteksi.</td></tr>';
         }
+    }
 
-        // ===========================================
-        // 6. HELPER UMUM & EVENT HANDLER
-        // ===========================================
-        function renderPlans() {
-            let tbody = document.getElementById('tblPlans'); if (!tbody) return;
-            ensurePaginationContainers('page-budget', 'plan');
-            if (!globalPlans || globalPlans.length === 0) { if (document.getElementById('emptyPlanMsg')) document.getElementById('emptyPlanMsg').style.display = 'block'; tbody.innerHTML = ''; renderPaginationUI(0, 1, 'plan'); return; }
-            if (document.getElementById('emptyPlanMsg')) document.getElementById('emptyPlanMsg').style.display = 'none';
-            let total = globalPlans.length; let pages = Math.ceil(total / rowsPerPage);
-            if (pageState.plan > pages) pageState.plan = 1;
-            let start = (pageState.plan - 1) * rowsPerPage; let sliced = globalPlans.slice(start, start + rowsPerPage);
-            let html = sliced.map((p, i) => {
-                let idx = start + i + 1; let tgl = '-'; try { tgl = new Date(p.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }); } catch (e) { }
-                let badge = (p.status === 'Lunas') ? '<span class="badge bg-success">Lunas</span>' : '<span class="badge bg-warning text-dark">Belum</span>';
-                let descSafe = (p.desc || "").replace(/'/g, "\\'"); let nameSafe = p.name.replace(/'/g, "\\'");
-                let btnEdit = `<button class="btn btn-sm btn-outline-warning me-1" title="Edit" onclick="showEditPlanModal(${p.row}, '${nameSafe}', ${p.amount}, '${p.date}', '${descSafe}')"><i class="fas fa-edit"></i></button>`;
-                let btnBayar = (p.status === 'Lunas') ? '' : `<button class="btn btn-sm btn-outline-success" onclick="markAsLunas(${p.row}, '${nameSafe}', ${p.amount})"><i class="fas fa-check"></i></button>`;
-                return `<tr><th scope="row">${idx}</th><td>${p.name}</td><td>${tgl}</td><td class="fw-bold text-primary">${formatRp(p.amount)}</td><td>${badge}</td><td><div class="d-flex">${btnEdit}${btnBayar}</div></td></tr>`;
-            }).join('');
-            tbody.innerHTML = html; renderPaginationUI(total, pageState.plan, 'plan');
-        }
+    // ===========================================
+    // 6. HELPER UMUM & EVENT HANDLER
+    // ===========================================
+    function renderPlans() {
+        let tbody = document.getElementById('tblPlans'); if (!tbody) return;
+        ensurePaginationContainers('page-budget', 'plan');
+      if (!globalPlans || globalPlans.length === 0) { if (document.getElementById('emptyPlanMsg')) document.getElementById('emptyPlanMsg').style.display = 'block'; tbody.innerHTML = ''; renderPaginationUI(0, 1, 'plan'); return; }
+      if (document.getElementById('emptyPlanMsg')) document.getElementById('emptyPlanMsg').style.display = 'none';
+      let total = globalPlans.length; let pages = Math.ceil(total / rowsPerPage);
+      if (pageState.plan > pages) pageState.plan = 1;
+      let start = (pageState.plan - 1) * rowsPerPage; let sliced = globalPlans.slice(start, start + rowsPerPage);
+      let html = sliced.map((p, i) => { 
+          let idx = start + i + 1; let tgl = '-'; try { tgl = new Date(p.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }); } catch (e) { }
+          let badge = (p.status === 'Lunas') ? '<span class="badge bg-success">Lunas</span>' : '<span class="badge bg-warning text-dark">Belum</span>';
+          let descSafe = (p.desc || "").replace(/'/g, "\\'"); let nameSafe = p.name.replace(/'/g, "\\'");
+          let btnEdit = `<button class="btn btn-sm btn-outline-warning me-1" title="Edit" onclick="showEditPlanModal(${p.row}, '${nameSafe}', ${p.amount}, '${p.date}', '${descSafe}')"><i class="fas fa-edit"></i></button>`;
+          let btnBayar = (p.status === 'Lunas') ? '' : `<button class="btn btn-sm btn-outline-success" onclick="markAsLunas(${p.row}, '${nameSafe}', ${p.amount})"><i class="fas fa-check"></i></button>`;
+          return `<tr><th scope="row">${idx}</th><td>${p.name}</td><td>${tgl}</td><td class="fw-bold text-primary">${formatRp(p.amount)}</td><td>${badge}</td><td><div class="d-flex">${btnEdit}${btnBayar}</div></td></tr>`;
+      }).join('');
+      tbody.innerHTML = html; renderPaginationUI(total, pageState.plan, 'plan');
+  }
 
-        function showEditPlanModal(row, oldName, oldAmount, oldDateStr, oldDesc) {
-            let d = new Date(oldDateStr); let dateVal = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
-            let nominalFormatted = new Intl.NumberFormat('id-ID').format(oldAmount);
+    function showEditPlanModal(row, oldName, oldAmount, oldDateStr, oldDesc) {
+      let d = new Date(oldDateStr); let dateVal = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+      let nominalFormatted = new Intl.NumberFormat('id-ID').format(oldAmount);
       Swal.fire({
           title: 'Update Rencana',
           html: `<div class="text-start"><label class="small fw-bold text-muted mb-1">NAMA RENCANA</label><input id="edit-nama" class="form-control mb-2 fw-bold" value="${oldName}"><label class="small fw-bold text-muted mb-1">TARGET NOMINAL (Rp)</label><input id="edit-amount" class="form-control mb-2 text-primary fw-bold" value="${nominalFormatted}" onkeyup="formatRupiahTyping(this)"><label class="small fw-bold text-muted mb-1">TENGGAT WAKTU</label><input type="date" id="edit-date" class="form-control mb-2" value="${dateVal}"><label class="small fw-bold text-muted mb-1">KETERANGAN</label><input id="edit-desc" class="form-control" value="${oldDesc}"></div>`,
@@ -340,38 +371,67 @@
               google.script.run.withSuccessHandler(() => { Swal.fire('Sukses', 'Berhasil update!', 'success'); refreshData(true); }).withFailureHandler((e) => { Swal.fire('Gagal', e.message, 'error'); }).updateRencana(result.value.row, result.value.nama, result.value.nominal, result.value.tgl, result.value.ket);
           }
       });
-                }
+  }
 
-                function renderPaginationUI(total, current, type) {
-                    let top = document.getElementById(`pag-top-${type}`); let bot = document.getElementById(`pag-bottom-${type}`);
-                    let pages = Math.ceil(total / rowsPerPage); if (total === 0) { if (top) top.innerHTML = ''; if (bot) bot.innerHTML = ''; return; }
-                    let start = (current - 1) * rowsPerPage + 1; let end = Math.min(current * rowsPerPage, total);
-                    if (top) top.innerHTML = `<div class="d-flex align-items-center mb-2"><span class="small text-muted me-2">Show</span><select class="form-select form-select-sm" style="width:auto;" onchange="changeRows('${type}',this.value)"><option value="10" ${rowsPerPage == 10 ? 'selected' : ''}>10</option><option value="25" ${rowsPerPage == 25 ? 'selected' : ''}>25</option><option value="50" ${rowsPerPage == 50 ? 'selected' : ''}>50</option><option value="100" ${rowsPerPage == 100 ? 'selected' : ''}>100</option></select></div>`;
-                    if (bot) {
-                        if (pages <= 1) bot.innerHTML = `<div class="mt-3 pt-2 border-top text-center text-muted small">Total ${total} data</div>`;
-                        else bot.innerHTML = `<div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top"><small class="text-muted">${start}-${end} dari ${total}</small><div><button class="btn btn-sm btn-outline-secondary me-1" ${current === 1 ? 'disabled' : ''} onclick="chPage('${type}',-1)"><i class="fas fa-chevron-left"></i></button><button class="btn btn-sm btn-outline-secondary" ${current === pages ? 'disabled' : ''} onclick="chPage('${type}',1)"><i class="fas fa-chevron-right"></i></button></div></div>`;
-                    }
-                }
+    function renderPaginationUI(total, current, type) {
+        let top = document.getElementById(`pag-top-${type}`); let bot = document.getElementById(`pag-bottom-${type}`);
+      let pages = Math.ceil(total / rowsPerPage); if (total === 0) { if (top) top.innerHTML = ''; if (bot) bot.innerHTML = ''; return; }
+      let start = (current - 1) * rowsPerPage + 1; let end = Math.min(current * rowsPerPage, total);
+      if (top) top.innerHTML = `<div class="d-flex align-items-center mb-2"><span class="small text-muted me-2">Show</span><select class="form-select form-select-sm" style="width:auto;" onchange="changeRows('${type}',this.value)"><option value="10" ${rowsPerPage == 10 ? 'selected' : ''}>10</option><option value="25" ${rowsPerPage == 25 ? 'selected' : ''}>25</option><option value="50" ${rowsPerPage == 50 ? 'selected' : ''}>50</option><option value="100" ${rowsPerPage == 100 ? 'selected' : ''}>100</option></select></div>`;
+      if (bot) {
+          if (pages <= 1) bot.innerHTML = `<div class="mt-3 pt-2 border-top text-center text-muted small">Total ${total} data</div>`;
+          else bot.innerHTML = `<div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top"><small class="text-muted">${start}-${end} dari ${total}</small><div><button class="btn btn-sm btn-outline-secondary me-1" ${current === 1 ? 'disabled' : ''} onclick="chPage('${type}',-1)"><i class="fas fa-chevron-left"></i></button><button class="btn btn-sm btn-outline-secondary" ${current === pages ? 'disabled' : ''} onclick="chPage('${type}',1)"><i class="fas fa-chevron-right"></i></button></div></div>`;
+      }
+  }
 
     function changeRows(type, v) { rowsPerPage = Number(v); if (type === 'report') { pageState.report = 1; renderReportTable(); } else { pageState.plan = 1; renderPlans(); } }
     function chPage(type, d) { if (type === 'report') { pageState.report += d; renderReportTable(); } else { pageState.plan += d; renderPlans(); } }
     function ensurePaginationContainers(pid, type) {
-        let p = document.getElementById(pid); if (!p) return; let tr = p.querySelector('.table-responsive'); if (!tr) return;
-        let tid = `pag-top-${type}`, bid = `pag-bottom-${type}`;
-        if (!document.getElementById(tid)) { let d = document.createElement('div'); d.id = tid; tr.parentNode.insertBefore(d, tr); }
-        if (!document.getElementById(bid)) { let d = document.createElement('div'); d.id = bid; tr.parentNode.insertBefore(d, tr.nextSibling); }
+      let p = document.getElementById(pid); if (!p) return; let tr = p.querySelector('.table-responsive'); if (!tr) return;
+      let tid = `pag-top-${type}`, bid = `pag-bottom-${type}`;
+      if (!document.getElementById(tid)) { let d = document.createElement('div'); d.id = tid; tr.parentNode.insertBefore(d, tr); }
+      if (!document.getElementById(bid)) { let d = document.createElement('div'); d.id = bid; tr.parentNode.insertBefore(d, tr.nextSibling); }
+  }
+    function resetFilterReport() {
+        document.getElementById('filterStart').value = '';
+        document.getElementById('filterEnd').value = '';
+        document.getElementById('filterCategory').value = ''; // Reset dropdown
+
+        filterState.isActive = false;
+        filterState.startDate = null;
+        filterState.endDate = null;
+        filterState.category = '';
+
+        renderReportTable(null);
     }
-    function resetFilterReport() { document.getElementById('filterStart').value = ''; document.getElementById('filterEnd').value = ''; filterState.isActive = false; filterState.startDate = null; filterState.endDate = null; renderReportTable(null); }
 
     function setupDropdownInput(allAccounts) { let opts = '<option value="" disabled selected>-- Pilih Akun --</option>'; allAccounts.forEach(acc => { let s = globalBalances[acc.name] || 0; opts += `<option value="${acc.name}">${acc.name} (${formatRp(s)})</option>`; });['sumberSel', 'sumberTfSel', 'tujuanTfSel', 'updateAkunSel'].forEach(id => { let el = document.getElementById(id); if (el) el.innerHTML = opts; }); updateKat(); }
     function downloadExcel() {
         let data = globalHistory; if (filterState.isActive) data = globalHistory.filter(m => { let d = new Date(m.date); return d >= filterState.startDate && d <= filterState.endDate; });
         if (!data || data.length === 0) { Swal.fire('Info', 'Kosong', 'info'); return; }
         let csv = "TANGGAL,TIPE,KATEGORI,KET,AKUN,MASUK,KELUAR\n";
-        data.forEach(r => { let d = new Date(r.date); let t = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); let k = (r.note || "").replace(/,/g, " ").replace(/\n/g, " "); let m = (r.type === 'Income') ? r.amount : 0; let out = (r.type !== 'Income') ? r.amount : 0; csv += `${t},${r.type},${r.cat},${k},${r.acc},${m},${out}\n`; });
-        let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); let link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "Laporan.csv"; link.click();
+      data.forEach(r => { let d = new Date(r.date); let t = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); let k = (r.note || "").replace(/,/g, " ").replace(/\n/g, " "); let m = (r.type === 'Income') ? r.amount : 0; let out = (r.type !== 'Income') ? r.amount : 0; csv += `${t},${r.type},${r.cat},${k},${r.acc},${m},${out}\n`; });
+      let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); let link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "Laporan.csv"; link.click();
   }
-    function handleFilterReport() { let startStr = document.getElementById('filterStart').value; let endStr = document.getElementById('filterEnd').value; if (!startStr || !endStr) { Swal.fire('Info', 'Harap pilih Tanggal Awal dan Akhir', 'info'); return; } let startDate = new Date(startStr); let endDate = new Date(endStr); endDate.setHours(23, 59, 59); filterState.isActive = true; filterState.startDate = startDate; filterState.endDate = endDate; renderReportTable(null); Swal.fire({ title: 'Filter Berhasil', text: `Menampilkan data terpilih.`, icon: 'success', timer: 1000, showConfirmButton: false }); }
+    function handleFilterReport() {
+        let startStr = document.getElementById('filterStart').value;
+        let endStr = document.getElementById('filterEnd').value;
+        let catStr = document.getElementById('filterCategory').value; // Ambil Kategori
+
+        // Validasi: Minimal tanggal harus diisi
+        if (!startStr || !endStr) {
+            Swal.fire('Info', 'Harap pilih rentang Tanggal dulu', 'info');
+            return;
+        }
+
+        filterState.isActive = true;
+        filterState.startDate = new Date(startStr);
+        filterState.endDate = new Date(endStr);
+        filterState.endDate.setHours(23, 59, 59);
+        filterState.category = catStr; // Simpan state kategori
+
+        renderReportTable(null); // Render ulang tabel
+    }
 
   function renderAssetCharts(allAccounts, balances, totalInvest) {
       // 1. RENDER DOUGHNUT CHART (ASSET ALLOCATION)
@@ -381,12 +441,12 @@
 
           // Filter hanya akun yang termasuk ASET
           allAccounts.forEach(acc => {
-              if (ASSET_KEYWORDS.some(k => acc.name.toUpperCase().includes(k))) {
+              if (ASSET_KEYWORDS.some(k => acc.name.toUpperCase().includes(k))) { 
                   let val = balances[acc.name] || 0; 
                   if (val > 0) {
                       assetLabels.push(acc.name);
                       assetValues.push(val);
-                  }
+                  } 
               } 
           });
 
@@ -402,7 +462,7 @@
                   datasets: [{
                       data: assetValues,
                       backgroundColor: vibrantColors,
-                      borderWidth: 2,
+                      borderWidth: 2, 
                       borderColor: isDark ? '#1e1e1e' : '#fff',
                       hoverOffset: 20, // <--- EFEK BOUNCE (POP OUT)
                       hoverBorderWidth: 0
@@ -410,15 +470,15 @@
               },
               options: {
                   responsive: true,
-                  maintainAspectRatio: false,
+                  maintainAspectRatio: false, 
                   cutout: '30%', // Lubang tengah
                   layout: {
                       padding: 15 // <--- PADDING AGAR TIDAK KEPOTONG SAAT BOUNCE
                   },
                   plugins: {
                       legend: {
-                          position: 'bottom',
-                          labels: { color: isDark ? '#fff' : '#666', font: { size: 10 }, padding: 15 }
+                          position: 'bottom', 
+                          labels: { color: isDark ? '#fff' : '#666', font: { size: 10 }, padding: 15 } 
                       },
                       tooltip: { // TAMBAHAN: Persentase di Tooltip
                           callbacks: {
@@ -433,40 +493,40 @@
                       }
                   },
                   animation: { animateScale: true, animateRotate: true }
-              }
+              } 
           });
       }
 
       // 2. RENDER LINE CHART (ASSET TREND) - Tetap Sama tapi dirapikan
       let ctxLine = document.getElementById('chartAssetTrend');
       if (ctxLine && globalHistory) {
-          let days = [], values = [], tempVal = totalInvest, today = new Date();
+          let days = [], values = [], tempVal = totalInvest, today = new Date(); 
           let startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1); 
           let histIndex = 0;
 
           for (let i = 0; i < 31; i++) {
               let d = new Date(); d.setDate(today.getDate() - i);
-              if (d < startOfMonth) break;
-              days.unshift(d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }));
+              if (d < startOfMonth) break; 
+              days.unshift(d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })); 
               values.unshift(tempVal);
 
               while (histIndex < globalHistory.length) {
                   let tx = globalHistory[histIndex];
                   let txDate = new Date(tx.date);
                   if (isSameDay(txDate, d)) {
-                      let isAssetSource = ASSET_KEYWORDS.some(k => tx.acc.toUpperCase().includes(k));
-                      let isAssetDest = ASSET_KEYWORDS.some(k => (tx.dest || "").toUpperCase().includes(k));
-
+                      let isAssetSource = ASSET_KEYWORDS.some(k => tx.acc.toUpperCase().includes(k)); 
+                      let isAssetDest = ASSET_KEYWORDS.some(k => (tx.dest || "").toUpperCase().includes(k)); 
+                    
                       if ((tx.type === 'Income' && isAssetSource) || (tx.type === 'Transfer' && isAssetDest)) tempVal -= tx.amount;
                       else if ((tx.type === 'Expense' && isAssetSource) || (tx.type === 'Transfer' && isAssetSource)) tempVal += tx.amount;
 
                       histIndex++;
-                  } else if (txDate < d) { break; } else { histIndex++; }
+                  } else if (txDate < d) { break; } else { histIndex++; } 
               }
           }
 
           if (myAssetLine) myAssetLine.destroy();
-          let isDark = document.body.classList.contains('dark-mode');
+          let isDark = document.body.classList.contains('dark-mode'); 
           let gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'; 
 
           let gradientStroke = ctxLine.getContext('2d').createLinearGradient(0, 0, 400, 0);
@@ -475,7 +535,7 @@
           gradientStroke.addColorStop(1, '#2ecc71');
 
           let gradientFill = ctxLine.getContext('2d').createLinearGradient(0, 0, 0, 300);
-          gradientFill.addColorStop(0, 'rgba(52, 152, 219, 0.3)');
+          gradientFill.addColorStop(0, 'rgba(52, 152, 219, 0.3)'); 
           gradientFill.addColorStop(1, 'rgba(52, 152, 219, 0.0)');
 
           myAssetLine = new Chart(ctxLine, {
@@ -504,16 +564,16 @@
                       legend: { display: false },
                       tooltip: {
                           backgroundColor: 'rgba(0,0,0,0.8)',
-                          titleColor: '#fff', bodyColor: '#fff', padding: 12, cornerRadius: 8,
+                          titleColor: '#fff', bodyColor: '#fff', padding: 12, cornerRadius: 8, 
                           callbacks: { label: function (c) { return 'Rp ' + new Intl.NumberFormat('id-ID').format(c.parsed.y) } }
                       }
                   },
-                  scales: {
+                  scales: { 
                       y: { beginAtZero: false, grid: { display: true, color: gridColor, borderDash: [5, 5] }, ticks: { color: isDark ? '#aaa' : '#666' } },
                       x: { grid: { display: false }, ticks: { color: isDark ? '#aaa' : '#666' } }
                   },
                   animation: { y: { duration: 2000, easing: 'easeOutQuart' } }
-              }
+              } 
           });
       }
   }
@@ -530,71 +590,71 @@
             if (!globalHistory || globalHistory.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Belum ada data.</td></tr>';
             } else {
-                globalHistory.slice(0, 5).forEach((m, i) => {
-                    let tgl = '-'; try { tgl = new Date(m.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }); } catch (e) { }
-                    let cls = (m.type === 'Expense') ? 'text-danger' : (m.type === 'Income' ? 'text-success' : 'text-primary');
-                    let nom = (m.type === 'Expense') ? `- ${formatRp(m.amount)}` : `+ ${formatRp(m.amount)}`;
-                    if (m.type === 'Transfer') nom = formatRp(m.amount);
-                    tbody.innerHTML += `<tr><td>${i + 1}</td><td>${tgl}</td><td class="small text-muted text-truncate" style="max-width:150px;">${m.note}</td><td class="text-end fw-bold ${cls}">${nom}</td></tr>`;
-                });
-            }
+                globalHistory.slice(0, 5).forEach((m, i) => { 
+                  let tgl = '-'; try { tgl = new Date(m.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }); } catch (e) { }
+                  let cls = (m.type === 'Expense') ? 'text-danger' : (m.type === 'Income' ? 'text-success' : 'text-primary');
+                  let nom = (m.type === 'Expense') ? `- ${formatRp(m.amount)}` : `+ ${formatRp(m.amount)}`; 
+                  if (m.type === 'Transfer') nom = formatRp(m.amount);
+                  tbody.innerHTML += `<tr><td>${i + 1}</td><td>${tgl}</td><td class="small text-muted text-truncate" style="max-width:150px;">${m.note}</td><td class="text-end fw-bold ${cls}">${nom}</td></tr>`;
+              });
         }
+    } 
 
-        // 2. RENDER CHART DOUGHNUT DASHBOARD (UPDATED)
-        let ctx = document.getElementById('chartDashboard');
-        if (ctx) {
-            let totInc = 0, totExp = 0;
-            if (globalHistory.length > 0) {
-                globalHistory.forEach(m => {
-                    if (m.type === 'Income') totInc += m.amount;
-                    if (m.type === 'Expense') totExp += m.amount;
-                });
-            }
+    // 2. RENDER CHART DOUGHNUT DASHBOARD (UPDATED)
+    let ctx = document.getElementById('chartDashboard');
+    if (ctx) {
+        let totInc = 0, totExp = 0; 
+          if (globalHistory.length > 0) {
+              globalHistory.forEach(m => {
+                  if (m.type === 'Income') totInc += m.amount;
+                  if (m.type === 'Expense') totExp += m.amount;
+              });
+          }
 
-            if (myChart) myChart.destroy();
-            let isDark = document.body.classList.contains('dark-mode');
+          if (myChart) myChart.destroy();
+          let isDark = document.body.classList.contains('dark-mode');
 
-            myChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Pemasukan', 'Pengeluaran'],
-                    datasets: [{
-                        data: [totInc, totExp],
-                        backgroundColor: ['#2ecc71', '#e74c3c'],
-                        borderWidth: 2,
-                        borderColor: isDark ? '#1e1e1e' : '#ffffff',
-                        hoverOffset: 20, // <--- EFEK BOUNCE (POP OUT)
-                        hoverBorderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: {
-                        padding: 15 // <--- PADDING AGAR TIDAK KEPOTONG SAAT BOUNCE
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: isDark ? '#fff' : '#666', boxWidth: 12, font: { size: 11 } }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    let label = context.label || '';
-                                    let value = context.parsed;
-                                    let total = context.chart._metasets[context.datasetIndex].total;
-                                    let percentage = ((value / total) * 100).toFixed(1) + "%";
-                                    return label + ': ' + formatRp(value) + ' (' + percentage + ')';
-                                }
-                            }
-                        }
-                    },
-                    animation: { animateScale: true, animateRotate: true }
-                }
-            });
-        }
+          myChart = new Chart(ctx, {
+              type: 'doughnut',
+              data: {
+                  labels: ['Pemasukan', 'Pengeluaran'],
+                  datasets: [{
+                      data: [totInc, totExp],
+                      backgroundColor: ['#2ecc71', '#e74c3c'],
+                      borderWidth: 2,
+                      borderColor: isDark ? '#1e1e1e' : '#ffffff',
+                      hoverOffset: 20, // <--- EFEK BOUNCE (POP OUT)
+                      hoverBorderWidth: 0
+                  }]
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  layout: {
+                      padding: 15 // <--- PADDING AGAR TIDAK KEPOTONG SAAT BOUNCE
+                  },
+                  plugins: {
+                      legend: {
+                          position: 'bottom', 
+                          labels: { color: isDark ? '#fff' : '#666', boxWidth: 12, font: { size: 11 } }
+                      },
+                      tooltip: {
+                          callbacks: {
+                              label: function (context) {
+                                  let label = context.label || '';
+                                  let value = context.parsed;
+                                  let total = context.chart._metasets[context.datasetIndex].total;
+                                  let percentage = ((value / total) * 100).toFixed(1) + "%";
+                                  return label + ': ' + formatRp(value) + ' (' + percentage + ')';
+                              }
+                          }
+                      }
+                  },
+                  animation: { animateScale: true, animateRotate: true }
+              }
+          });
     }
+}
   function handleSimpan(e) { e.preventDefault(); let mode = document.getElementById('inputMode').value; let nominal = Number(document.getElementById('inputJumlah').value.replace(/\./g, "")); let btn = document.getElementById('btnSimpan'); let ori = btn.innerHTML; if (mode === 'budget') { let nama = document.getElementById('budgetNama').value.toUpperCase(); let tgl = document.querySelector('input[name="tanggal"]').value; let ket = document.getElementById('inputKet').value.toUpperCase(); btn.disabled=true; btn.innerHTML='Menyimpan...'; google.script.run.withSuccessHandler(()=>{ btn.disabled=false; btn.innerHTML=ori; Swal.fire('Sukses','Rencana Disimpan','success'); document.getElementById('formInput').reset(); document.querySelector('input[name="tanggal"]').valueAsDate = new Date(); refreshData(true); }).tambahRencana(nama, nominal, tgl, ket); return; } let sumber = (mode === 'transfer') ? document.getElementById('sumberTfSel').value : document.getElementById('sumberSel').value; let isExp = (mode === 'transfer' || document.getElementById('tipeSel').value === 'Expense'); if (isExp && sumber) { if (nominal > (globalBalances[sumber]||0)) { Swal.fire('Gagal', 'Saldo Tidak Cukup!', 'error'); return; } } btn.disabled=true; btn.innerHTML='Menyimpan...'; google.script.run.withSuccessHandler(()=>{ btn.disabled=false; btn.innerHTML=ori; Swal.fire('Sukses','Data Disimpan','success'); document.getElementById('formInput').reset(); document.querySelector('input[name="tanggal"]').valueAsDate = new Date(); updateKat(); refreshData(true); }).simpanData(document.getElementById('formInput')); }
   function handleUpdateProfile(e){ e.preventDefault(); var ou=document.getElementById('oldUser').value; var op=e.target.oldPass.value; var nu=e.target.newPass.value; google.script.run.withSuccessHandler(r=>{ if(r.success){Swal.fire('Sukses','Password berhasil diubah. Silakan login ulang.', 'success').then(()=>{doLogout()})} else {Swal.fire('Gagal',r.message,'error')} }).updateUserProfile(ou,op,nu); }
   function showAddAccountModal() { Swal.fire({ title: 'Akun Baru', html: `<input id="swal-nama" class="form-control mb-2" placeholder="Nama"><select id="swal-type" class="form-select mb-2"><option>Bank</option><option>E-Wallet</option><option>Tunai</option></select><input id="swal-saldo" class="form-control" placeholder="Saldo" onkeyup="formatRupiahTyping(this)">`, showCancelButton: true, preConfirm:()=>{ return {nama:document.getElementById('swal-nama').value, tipe:document.getElementById('swal-type').value, saldo:document.getElementById('swal-saldo').value.replace(/\./g,'')} } }).then(res => { if(res.isConfirmed && res.value.nama) { Swal.showLoading(); google.script.run.withSuccessHandler(()=>{Swal.fire('Sukses','','success'); refreshData(true);}).tambahAkunBaru(res.value.nama, res.value.tipe, Number(res.value.saldo)); } }); }
