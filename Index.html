@@ -282,10 +282,10 @@
                     class="w-3 h-3 bg-white dark:bg-indigo-400 rounded-full shadow transform transition-transform duration-300 translate-x-4 dark:translate-x-0">
                   </div>
                 </div>
-                </button>
-                </div>
+              </button>
+              </div>
           </div>
-          </div>
+        </div>
 
         <div class="text-center mb-8 mt-4">
           <div
@@ -319,8 +319,8 @@
           <span data-i18n="app_name">Isi Dompet</span> © <span id="current-year"></span>
         </p>
       </div>
-      </div>
-      </div>
+    </div>
+    </div>
 
   <aside id="sidebar"
     class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-darkcard border-r border-slate-200 dark:border-slate-700 transform -translate-x-full md:translate-x-0 flex flex-col shadow-2xl md:shadow-none h-full overflow-hidden">
@@ -399,7 +399,8 @@
             <button onclick="toggleNominal()"
               class="flex items-center justify-between w-full px-4 py-3 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-t dark:border-slate-700">
               <div class="flex items-center gap-3"><i id="eye-icon-menu" class="fa-solid fa-eye w-4 text-center"></i>
-                <span data-i18n="hide_nominal">Sensor Saldo</span></div>
+                <span data-i18n="hide_nominal">Sensor Saldo</span>
+                </div>
             </button>
 
             <button onclick="toggleTheme()"
@@ -412,10 +413,10 @@
                   class="w-3 h-3 bg-white dark:bg-indigo-400 rounded-full shadow transform transition-transform duration-300 translate-x-4 dark:translate-x-0">
                 </div>
               </div>
-              </button>
-              </div>
+            </button>
+            </div>
         </div>
-        </div>
+      </div>
     </header>
 
     <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 dark:bg-darkbg">
@@ -534,8 +535,8 @@
               <i class="fa-solid fa-user-shield"></i>
             </div>
             <h2 class="font-bold text-xl dark:text-white" data-i18n="change_password">Ganti Password</h2>
-            </div>
-            <form onsubmit="submitChangePassword(event)" class="p-8 space-y-5">
+          </div>
+          <form onsubmit="submitChangePassword(event)" class="p-8 space-y-5">
             <div>
               <label class="text-xs font-bold text-slate-400 uppercase" data-i18n="old_password">Password
                 Lama</label><input type="password" placeholder="Old Password" id="old-pass"
@@ -604,7 +605,7 @@
                   required>
                   <option>Loading...</option>
                 </select>
-                </div>
+              </div>
             </div>
             <div id="div-tujuan" class="hidden">
               <label class="text-xs font-bold text-blue-500 uppercase" data-i18n="to_account">Ke Akun</label><select
@@ -612,10 +613,10 @@
                 class="w-full p-3 bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-blue-700 rounded-xl outline-none font-bold text-blue-800 dark:text-blue-100">
                 <option>Loading...</option>
               </select>
-              </div>
-              <div id="div-kategori">
-                <label class="text-xs font-bold text-slate-400 uppercase" data-i18n="category">Kategori</label><select
-                  name="t_kategori"
+            </div>
+            <div id="div-kategori">
+              <label class="text-xs font-bold text-slate-400 uppercase" data-i18n="category">Kategori</label><select
+                name="t_kategori"
                 class="w-full p-3 bg-white dark:bg-slate-800 border dark:border-slate-600 rounded-xl outline-none"></select>
             </div>
             <div id="div-keterangan-container">
@@ -634,8 +635,8 @@
               class="w-full bg-slate-800 hover:bg-slate-900 dark:bg-primary dark:hover:bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg transform active:scale-95 transition-transform disabled:bg-gray-400 disabled:cursor-not-allowed"
               data-i18n="btn_save_trx">Simpan Transaksi</button>
           </form>
-          </div>
-          </div>
+        </div>
+        </div>
 
       <div id="view-input" class="hidden fade-up pb-10">
         <div class="mb-6 relative">
@@ -733,7 +734,7 @@
                 class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border dark:border-slate-600 rounded-xl text-sm mt-1">
                 <option value="">Semua</option>
               </select>
-              </div>
+            </div>
             <div class="flex items-end gap-2">
               <button onclick="loadReport()"
                 class="flex-1 bg-slate-800 dark:bg-primary text-white font-bold py-2.5 rounded-xl shadow mt-1 hover:opacity-90 transform active:scale-95 transition-transform"
@@ -752,58 +753,58 @@
                 class="font-bold text-xs text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider flex items-center gap-2">
                 <i class="fa-solid fa-chart-line text-primary"></i>
                 <span data-i18n="chart_trend_monthly">Tren Bulanan</span>
-                </h4>
-                <div class="flex-1 relative min-h-0" dir="ltr"><canvas id="chartReportLine"></canvas></div>
-                </div>
+              </h4>
+              <div class="flex-1 relative min-h-0" dir="ltr"><canvas id="chartReportLine"></canvas></div>
+              </div>
             <div class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-3xl border dark:border-slate-600 h-96 flex flex-col">
               <h4
                 class="font-bold text-xs text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider flex items-center gap-2">
                 <i class="fa-solid fa-chart-pie text-primary"></i>
                 <span data-i18n="chart_proportion">Proporsi Kategori</span>
-                </h4>
-                <div class="flex-1 relative min-h-0" dir="ltr"><canvas id="chartReportPie"></canvas></div>
-                </div>
-                </div>
-                <div class="border-t dark:border-slate-700 pt-4 mb-4 flex justify-between">
-                  <select id="report-limit" onchange="changeReportLimit(this.value)"
-                    class="bg-slate-50 dark:bg-slate-800 border dark:border-slate-600 rounded-lg text-xs p-1.5 font-bold">
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                  </select>
+              </h4>
+              <div class="flex-1 relative min-h-0" dir="ltr"><canvas id="chartReportPie"></canvas></div>
+              </div>
+              </div>
+              <div class="border-t dark:border-slate-700 pt-4 mb-4 flex justify-between">
+                <select id="report-limit" onchange="changeReportLimit(this.value)"
+                  class="bg-slate-50 dark:bg-slate-800 border dark:border-slate-600 rounded-lg text-xs p-1.5 font-bold">
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                </select>
             <span id="report-total-badge" class="text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full">0
               Data</span>
+          </div>
+          <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+            <table class="w-full text-left">
+              <thead class="bg-slate-50 dark:bg-slate-800 text-slate-500 text-sm uppercase font-bold">
+                <tr>
+                  <th class="p-4">No</th>
+                  <th class="p-4" data-i18n="th_date">Tanggal</th>
+                  <th class="p-4" data-i18n="th_type">Tipe</th>
+                  <th class="p-4" data-i18n="th_source">Sumber Dana</th>
+                  <th class="p-4" data-i18n="th_desc">Keterangan</th>
+                  <th class="p-4 text-right" data-i18n="th_amount">Nominal</th>
+                </tr>
+              </thead>
+              <tbody id="report-body" class="text-base divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+            </table>
+          </div>
+          <div class="mt-4 flex justify-between items-center">
+            <span id="report-page-info" class="text-xs font-bold text-slate-400">...</span>
+            <div class="flex gap-2">
+              <button id="btn-report-prev" onclick="changeReportPage(-1)"
+                class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 border dark:border-slate-600 text-xs font-bold"
+                data-i18n="btn_prev">Prev</button>
+              <button id="btn-report-next" onclick="changeReportPage(1)"
+                class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 border dark:border-slate-600 text-xs font-bold"
+                data-i18n="btn_next">Next</button>
             </div>
-            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-              <table class="w-full text-left">
-                <thead class="bg-slate-50 dark:bg-slate-800 text-slate-500 text-sm uppercase font-bold">
-                  <tr>
-                    <th class="p-4">No</th>
-                    <th class="p-4" data-i18n="th_date">Tanggal</th>
-                    <th class="p-4" data-i18n="th_type">Tipe</th>
-                    <th class="p-4" data-i18n="th_source">Sumber Dana</th>
-                    <th class="p-4" data-i18n="th_desc">Keterangan</th>
-                    <th class="p-4 text-right" data-i18n="th_amount">Nominal</th>
-                  </tr>
-                </thead>
-                <tbody id="report-body" class="text-base divide-y divide-slate-100 dark:divide-slate-700"></tbody>
-              </table>
-            </div>
-            <div class="mt-4 flex justify-between items-center">
-              <span id="report-page-info" class="text-xs font-bold text-slate-400">...</span>
-              <div class="flex gap-2">
-                <button id="btn-report-prev" onclick="changeReportPage(-1)"
-                  class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 border dark:border-slate-600 text-xs font-bold"
-                  data-i18n="btn_prev">Prev</button>
-                <button id="btn-report-next" onclick="changeReportPage(1)"
-                  class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 border dark:border-slate-600 text-xs font-bold"
-                  data-i18n="btn_next">Next</button>
-              </div>
-            </div>
-            </div>
-            </div>
-            </main>
-            </div>
+          </div>
+          </div>
+          </div>
+          </main>
+          </div>
 
   <div id="modal-form" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
@@ -821,7 +822,7 @@
           data-i18n="btn_save">Simpan</button>
       </form>
     </div>
-    </div>
+  </div>
 
   <div id="modal-payment" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closePaymentModal()"></div>
@@ -856,7 +857,7 @@
           <p id="error-saldo-pay" class="hidden text-red-500 text-xs font-bold mt-1"><i class="fa-solid fa-wallet"></i>
             <span data-i18n="err_balance">Saldo sumber dana tidak cukup!</span>
           </p>
-          </div>
+        </div>
         <div>
           <label class="block text-xs font-bold text-slate-400 uppercase mb-2" data-i18n="th_source">Sumber
             Dana</label><select name="p_sumber" id="p_sumber" onchange="validatePaymentInput()"
@@ -864,18 +865,18 @@
             required>
             <option value="">Loading...</option>
           </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-400 uppercase mb-2" data-i18n="pay_note">Keterangan
-              Tambahan</label><input type="text" name="p_keterangan"
-              class="w-full p-3 bg-slate-50 dark:bg-slate-900 border dark:border-slate-600 rounded-xl outline-none text-sm uppercase-input focus:ring-2 focus:ring-primary">
-          </div>
-          <button type="submit" id="btn-pay"
-            class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-lg mt-2 transform active:scale-95 transition-transform"
-            data-i18n="btn_process">Proses</button>
-          </form>
-          </div>
-          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase mb-2" data-i18n="pay_note">Keterangan
+            Tambahan</label><input type="text" name="p_keterangan"
+            class="w-full p-3 bg-slate-50 dark:bg-slate-900 border dark:border-slate-600 rounded-xl outline-none text-sm uppercase-input focus:ring-2 focus:ring-primary">
+        </div>
+        <button type="submit" id="btn-pay"
+          class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-lg mt-2 transform active:scale-95 transition-transform"
+          data-i18n="btn_process">Proses</button>
+        </form>
+        </div>
+        </div>
 
   <script>
     // ========================      . KAMUS BAHAS      ============================
@@ -884,22 +885,21 @@
         language: "Bah          aldo", theme: "Tema Mode",
         app_name: "Isi Dompet", menu: "Menu",
         loading              "Memuat Data...",
-        login_hero_title: "Raih Puncak Fina          lola uangmu d              afiknya terus menanjak.                   gin_subtitle: "Siap untuk meningkatkan level keua                 oard: "Dashboard",              out: "Keluar",
-                  ecent_trx: "Transak          : "Sumber Dana", th_desc: "K          word:              : "Simpan",
-                 ak cukup!", err_o              tagihan!",
+        login_hero_title: "Raih Puncak Fina          lola uang          us menanjak.                   gin_subtitle: "Siap          keua                 oard: "Dashboard", out: "Keluar",
+                , th_desc: "K          wo          !", err_o              tagihan!",
         from_acco          Kategori", btn_save_trx: "Simpan Transaksi",
         Walle          ", opt_invest: "💎                        btn_add_data: "Tamb           mo              yment_title: "Proses Pe                      n", bt          _empty: "Kosong",
         lbl_pay: "Bayar", lbl_receive: "Terima"
       },
       'en': {
-            e_nominal: "Hide Balance", theme: "Theme Mode",
+        e_nominal: "Hide Balance", theme: "Theme Mode",
         app_name: "Isi Dompet", menu: "Menu",
-            ing Data...",
+        ing Data...",
         logil              Reach Financial P           smartly, and wat                  come Back!", login_subt                 assword", Login No          oard:                     , nav_master: "Master                  available: "AVAILABLE FUN          SE                  nin          NVESTMENT",
             chart_cashflow           chart_proportion                         "See All",
-        th_date: "Date", th_ty,          source: "Source", th_des                  ion", th_amount: "Amount",
+        th_da          rce", th_des                  ion", th_amount: "Amount",
                       ge_password: "Change Pa            ", old_p               "Old Password", new_password: "New P                  nfirm_password:              m", btn_save: "Save",
-            inpu              Input Transaction", btn_income: "Income              xpense: "Expense", b                   "Transfer",
+                 Income              xpense: "Expense", b                   "Transfer",
         err_balance: "Insufficient balanc                  rpay: "              xceeds remaining bill!",
             from_account: "From Account", to_account: "To Account", category: "Category", btn_save_trx: "Save Transaction",
         opt_bank: "🏦   Bank", opt_ewallet: "📱   E-Wallet", opt_cash: "💵   Cash", opt_invest: "💎          , opt_saving: "🐷   Savings", opt_debt: "🧾   Debt", opt_receivable: "🤲   Receivable", opt_plan: "                   btn_add_data: "Add Data", show: "Show", btn_prev: "Prev", btn_next: "Next",
@@ -1010,8 +1010,8 @@
     // Menampilkan/          an Dropdown Penga            function toggleDashboardSet          cument.getEleme          dashboard-settings-dropdown').classList.toggle('              functio          LoginSettings() { document.getElementById('login - settings - dropdown').classList.toggle('hidden'); }
 
     // Klik diluar untuk m          own
-           w.addEventListener('click', function (e) {
-      (!e.target.closest('#dashboard-settings-contain                               onst dd = document.getElementById('dashboard-settin      r      wn');
+    w.addEventListener('click', function (e) {
+      (!e.target.closest('#dashboard-settings-contain                                           onst dd = document.getElementById('dashboard - sett            r      wn');
       if (dd && !dd.c        st.contains('hidden'        classList.add('hidden');
     }
 if (!e.ta        losest('#login-                er')) {
@@ -1026,18 +1026,20 @@ if (!e.ta        losest('#login-                er')) {
     }
           tion hideLoader() {
       document.getElementByI(er'          ist.add('hidden'); }
-    function initThem(torage.them            ' || (!('theme' in localStorage) && wn      hMed             - c       - scheme: dark)').matches)){document.documentEle            .add('dark');}else{document.documentElem          t.remove('dark');} }
-      function toggleTheme() {
-        document.do            i      e('dark');
-        if (document.documentElement.cl      ist      s('dark')) { localStorage.theme =       k'; }else { localStor      e = 'light'; }
-        const viewDash      d = document.getElementB      w- dashboa      ;
+                nitThem(torage.them            ' || (!('theme' in loca      rage       wn      hMed             - c       - scheme: dark)').m      es)) { document.documentEle.add('dark'); }       { document.documentElem          t.remove('dark'); }
+    }
+    function toggleTheme() {
+      document.do            i      e('dark');
+             (document.documentElement.cl      ist             dark')) {
+        localStorage.theme = k'; }else { localStor            = 'light'; }
+        const viewDash              document.getElementB      w- dashboa;
         if (!viewDashboard      st.contains('hi      ')) { loadDashboard(); }
       }
 
       function initNominalState() {
         if (localStorage.g      hi deNomina        e') {
         document.body.classList          s');
-        cons        ons = document.que          ey e-icon - menu');
+        cons        ons = document.que          ey e - icon - menu');
         icons.forEach(i => i.className = 'fa-solid fa-              tex      ')
         function toggleNominal() {
           const body = document.body; body.classList.toggle('hide-value            
@@ -1049,25 +1051,26 @@ if (!e.ta        losest('#login-                er')) {
             loca            rag            tIt            Nominal', 'false'); 
           }
         }
-                cument.addEventListener('DOMContentLoaded', () => {
+        cument.addEventListener('DOMContentLoaded', () => {
           initThem
-          initNominalState(                    setLangu          currentLang);
-        document.getElementById('cu          t-year').textContent = new Date().getFullYear();
-      });
+          initNominalState(setLangu          currentLang);
+          document.getElementById('cu          t-year').textContent = new Date().getFullYear();
+        });
 
-      function toggleSidebar() {
-        const body = document.body; if (win      innerWidth < 768) {
-          if (body.classList.contains('mobile-sidebar-open')) {
-            body.class            emove('mobile-sidebar-open      document.getElementById('sidebar').cla      st.add(' - translate - x - full'); document.get ElementById('bac            ).classList.add('hidden'); } else { body.classList          -sidebar-ope           document.getElementById('sidebar').classList.remov                e - x - full'); document.getElementById('backdrop').classList.rem            idden'); setTimeout(()=>document.getElementById('backdrop').classList.remove                ),10); }          lse { body.classList.toggle('sidebar - col            '); setT           {  window.dispatchEvent(new Event('resize')); }, 350); }                     function nav(v) { 
+        functio          ggleSidebar() {
+          const body          ocument.body; if (win      innerWidth < 768                      if (body.classList.contains('mobile-sidebar-open')) {
+              body.class            emove('mobile-sidebar-open      document.getElementById('sidebar').cla      st.add(' - translate - x - full'); document.get ElementById('bac).classList.add('hidden');
+            } else { body.c                  st - sidebar - ope           document.getElementById('sidebar').clas                  remov                e - x - full'); document.getElementById('backdrop').classList.                                           n'); setTimeout(() => document.getElementB                  ackdrop').classList.remove), 10); }          lse { body.classList.toggle('s                   - col            '); setT           { window.dispatchEvent(ne                ent('resize')); }, 350); } function nav(v) { 
         d      ent.q      Selector          '#          -dashboa r d, #view-tras            #view-input, #view-laporan, #view-profile').forEach(el => el.classList.add('hidden'));
               documentgetElementById('view-' + v).classList.remove('hidden');
               document.querye      or      '.nav-btn').forEach(b => {
                 b.classList.remove('bg-indigo-50', 'dark:            te-800', 'text-prima                   ssList.add('t ext - slate - 500'); b.qu              ector (' i').classL ist.remove('text - p rimary'); }); 
         const ab = document.getElementById(' n av-' + v);
-                         (ab) { ab.classList.add('bg- i ndig o -50', 'dark:bg-slate-800'              primary'); ab.class List      ove('text-slate-500'); b.querySelector            cla            .add('text-primary'); }
+                (ab) {
+                  ab.classList.add('bg- i ndig o -50', 'dark:bg-slate-800'              primary'); ab.class List      ove('text - slate - 500'); b.querySelector            cla            .add('text - primary'); }
 
                 let titleKey = 'nav_' + v;
-                if (v === 'input') titleKey = 'nav_mast e r';
+                  if (v === 'input') titleKey = 'nav_mast e r';
          d ocument.getElementBy I d('page-til      rText = translations[currentLang][titleKey] || v.toUpperCase(); 
                 
         if (window.innerWidth < 768) { document.body.classList.remove('m          e-b          pen'); document.getElementById            r').classList.add(' - translate - x - full'); document.getEl              ackdrop').classList.add('hidden');
@@ -1181,7 +1184,7 @@ if (!e.ta        losest('#login-                er')) {
       if (!data || !data.income || !data.expense) return;
       const ctx = document.getElementById('chartLine').getContext('2d'); if (window.myLineChart) window.myLineChart.destroy();
       const isDark = document.documentElement.classList.contains('dark'); const cT = isDark ? '#94a3b8' : '#64748b'; const cG = isD          334155' : '#f1f5f9';
-      window.myLineChart = new Chart(ctx, { type: 'line', data: { labels: data.labels, datasets: [{ label: 'Masuk', data: data.income, borderColor: '#10b981', backgroundColor: 'rg          6, 185, 129, 0.1)', tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 8 }, { label: 'Keluar', data: data.expense, b orderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 8 }] }, options: { maintainAspectR atio: false, inte r action: { mode: 'index', intersect: false }, plugi ns: { legend: { labels: { color: cT, font: { fam ily: 'Montse rrat' }, usePointStyle: t rue } } }, scales: { x: { grid: { display: f        , ti      : {      or: cT } }, y: { grid: { color: cG,        erDash: [5, 5] }, tic k s: { colo r: cT } } } } });
+      window.myLineChart = new Chart(ctx, { type: 'line', data: { labels: data.labels, datasets: [{ label: 'Masuk', data: data.income, borderColor: '#10b981', backgroundColor: 'rg          6, 185, 129, 0.1)', tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 8 }, { label: 'Keluar', data: data.expense, b orderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 8 }] }, options: { maintainAspectR atio: false, inte r action: { mode: 'index', intersect: false }, plugi ns: { legend: { labels: { color: cT, font: { fam ily: 'Montse rrat' }, usePointStyle: t rue } } }, scales: { x: { grid: { display:          : {         cT          y: { grid: { color: cG, erDash: [5          , tic k s: { colo r: cT } } } } });
     }
 
     function res etReportFilter()  { 
@@ -1203,62 +1206,70 @@ if (!e.ta        losest('#login-                er')) {
           google.script.run.withSuccessHandler(d => {
             hideLoader(); reportDataRaw = d; reportPage = 1; document.getElementById('report-total-badge').innerText = `${d.length} Data`; renderReportSlice();
           }).getTransactionData(start, end, cat);
-          google.script.run.withSuccessHandler(rend        rtCh      ).g      portChartData(start, end, cat);
+          google.script.run.withSuccessHandler(rend        rtCh).g                  Char            a(s            , end, cat);
            
         
     function renderReportSlice() {
-                       onst tb = document.getElementById('report-body'); tb.innerHTML = '';
-            if (!reportDataRaw.length) { tb.innerHTM                tr><td colspa="6" class="-      xtt      ext-slate-400">${translations[curentLang]['table_empty']}</td></tr>`; return; }
+          onst tb = docu              etElementById('report-body'); tb.innerHTML = '';
+          if(!reportDataRaw.length) {
+            tb.innerHTM                         r > <td colspa="6" class="-      xtt      ext-slate-400">${translations[curentLang]['table_empty']}</td></tr > `; return; }
             conststart = (reportP                1) * reportRowsPerPage, end = start + reportRowsPerPage, sliced = re portDataRaw.slice(start, end);
-            document.geElementById('report-page-info').innerText = `${translations[currentLang]['show']} ${start + 1}-${Math.min(end, reportDataRaw.length)} of ${reportDataRaw.length}`;
+            document.geElementById('report-page-info').innerText = `${ translations[currentLang]['show'] } ${ start + 1 } -${ Math.min(end, reportDataRaw.length) } of ${ reportDataRaw.length } `;
             document.getElementById('btn-report-prev').disabled = reportPage === 1; document.getElementById('btn-eport-next').disabled = end >= reportDataRaw.length;
             sliced.forEach((r, i) => {
-              let badge = 'bg-slate-100 text-slate-600', sign = ''; if (r.kode === 'PENGE LUARAN') { badge = 'bg-red-100 text-red-600'; sign = '-'; } if (r.kode === 'PEMASUKAN') { badge = 'bg-green-100 text-green-600'; sign = '+'; } if (r.kode === 'TRANSFER')ba dge = 'bg-blue-100 tex t-bue-600';                                   tb.innerHTML += `<tr class="border-b   borde r-slate- 50 dark:bo rder- slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/ 50 tran sition fade- up" style="animation-delay:${i * 0.05}s"><td cla                4 text-sm  font-bold text-slate-400">${start + i + 1}</td><td class="p-4 whitespac e-n owrap font-medium                base">${r.tang / td                   = "p-4" > <span class="${badge} px-2 py-1 rounded text-sm font-bold">${r.kode}</span></td ><td class="p-4 font-medium text-base">${r.kategori}</td><td class="p-4 text-sm uppercase text-slate-500 dark:text-slate-400">${r.keterangan}</td><td class="p-4 text-right font-bold text-base ${r.nominal<0?'text-red-5                k:text-red-400':'text-emeald-600 dark:text-emerald-              } n              al-card-value" dir="ltr"                matRupiah(r.nominal)}</td></tr > `; 
-        }); 
-    }
-    
-    function renderReportCharts(data) {
-        if (!data || !da      || !data.pie) return;
-        const isDark = document.documentElement.classList.contains('dark'); const cT = isDark ? '#94a3b8'      48b'; const  cG = isDark ? '#334155' : '#f1f5f 9';
-        const ctxLine = document.getElementById('chartReportLine');
-        if (ctxLine) {
-            if (window.myReportLine) window.myReportLine.destroy();
-            window.myReportLine = new Chart(ctxLine.getContext(                 type: 'line', data: { labels: data.line.labels, datasets: [ { label: 'In', data: data.line.income, borderColor: '#10b981', tension: 0.                Radius: 3, fill: false }, {                 Out', data: data.line.expense, borderC ol o:                  tension: 0.3, pointRadius:  3 , fill: false   } ] }, options: { maintainAspectRatio: false, plugins: { l e gend: { labels: { color: cT, font: { faml                serrat' }, usePointStyle: true } } }, sc                x: { ticks: { color: cT }, grid: { display: false } }, y: { ticks: { color: cT }, grid: { colo              G,d              sh: [5, 5] } } } } });
+              let badge = 'bg-slate-100 text-slate-600', sign = ''; if (r.kode === 'PENGE LUARAN') { badge = 'bg-red-100 text-red-600'; sign = '-'; } if (r.kode === 'PEMASUKAN') { badge = 'bg-green-100 text-green-600'; sign = '+'; } if (r.kode === 'TRANSFER                 dg                'bg-blue-100 tex t-bue-600';                                   tb.innerHTML += `< tr class="border-b   borde r-slate- 50 dark:bo rder- slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/ 50 tran s                  fade- up" style = "animation-delay:${i * 0.05}s" > <td cla                4 text - sm  font - bold text                   e - 400">${start + i                   td><td class="p - 4 whitespac e - n owrap font - medium                base">${r.tang / td                   = "p - 4" > <span class="${ badge } px - 2 py - 1 rounded text - sm font - bold">${r.kode}</span></td ><td class="p - 4 font - medium text - base">${r.kategori}</td><td class="p - 4 text - sm upperc                  xt - slate - 500 dark: text - slate - 400">${r.ket                gan                d><td class="p - 4 text                   t font - bold text - base ${
+            r.nominal < 0 ? 'text-red-5                k:text-red-400' : 'text-emeald-600 dark:text-emerald-              } n              al-card-value"                  ltr"                ma                    r.nominal)}<                       `; 
+          });
         }
-        const ctxPie = document.getElementById('chartReportPie');
-        if (ctxPie) {
-            if (window.myReportPie) window.myReportPie.destroy();
-            window.myReportPie = new Chart      ontext('2d'), { type: 'doug hnut',  dt      els: data.p i e.labels, d a ta s ets: [{ data: data.pie . data,   backgroundColor: ['#f8717 1 ', '#fb923c', '#      a3e65      e80', '#22d3ee',        a78bfa', '#e879f9'], bo r derWidth: 0, hoverOffset: 20 }] }, options: {   maintainAspectRati o: false, cutout: '35%', animation: { animateScale:t      lugins: { legend: { position: 'bottom', labels: { c o lor: cT, f ont : { family: 'Montserrat', size: 11, weight: '600' }, u s ePo in         padding        } });
+
+        function renderReportCharts(data) {
+          if (!data || !da || !data.pie) return;
+          const isDark = document.documentElement.classList.contains('dark'); const cT = isDark ? '#94a3b8'      48b'; const  cG = isDark ? '#334155' : '#f1f5f 9';
+          const ctxLine = document.getElementById('chartReportLine');
+          if (ctxLine) {
+            if (window.myReportLine) window.myReportLine.destroy();
+            window.myReportLine = new Chart(ctxLine.getContext(type: 'line', data: { labels: data.line.labels, datasets: [{ label: 'In', data: data.line.income, borderColor: '#10b981', tension: 0.                Radius: 3, fil          { Out', data: data.line.expense, borderC ol o:                  tension: 0.3, pointRadius:  3 , fill: false   } ] }, options: { maintainAspectRatio: false, plugins: { l e gend: { labels: { color: cT, font: { faml                serrat' }, usePointStyle: true } }
+        }, sc                x: { ticks: { color: cT }, grid: { display: false } }, y: { ticks: { color: cT }, grid: { colo              G, d              sh: [5, 5] } }
+      }
+    } });
+        }
+    const ctxPie = document.getElementById('chartReportPie');
+    if (ctxPie) {
+      if (window.myReportPie) window.myReportPie.destroy();
+      window.myReportPie = new Chart      ontext('2d'), {
+        type: 'doug hnut', dt      els: data.p i e.labels, d a ta s ets: [{
+          data: data.pie.data, backgroundColor: ['#f8717 1 ', '#fb923c', '#      a3e65      e80', '#22d3ee', a78bfa', '#e879f9'], bo r derWidth: 0, hoverOffset: 20 }] }, options: {   maintainAspectRati o: false, cutout: '35 % ', animation: { animateScale:t      lugins: { legend: { position: 'bottom', labels: { c o lor: cT, f ont : { family: 'Montserrat', size: 11, weight: '600' }, u s ePo in         padding        } });
         }
       } 
-         switchMas t er(t) { 
-        currentMasterType= t ; docu ment.ge tEl ementById('mas t er-ty p e-select').value = t; let  fetc h Type  = t  === 'p iut ang' ? 'huta n g' :  t ; 
-        document.getElement ById ( 'inv esta si-summ ary -container' ).inn e rHTML = ''; document.getElemn        tasi-summary -container').classList.add('hidden');
-        showLoader('loading'); 
-        google.script.run.withSuccessHandler(d => { 
-            hideLoader(); 
-            if (t === 'hutang') d = d.filter(x => x.kategori === 'HUTANG');
-            if (t === 'piutang') d = d.filter(x => x.kategori === 'PIUTANG');
-            if (t === 'investasi') { document.getElementById('master-summary-card').classList.add('hidden'); renderInvestmentSummary(d); } 
-            else { document.getElementById('master-summary-card').classList.remove('hidden'); updateMasterSummaryCard(d); }
-            renderMasterTable(d); 
-        }).getMasterData(fetch Type); 
-    }
+         switchMas t er(t) {
+        currentMasterType = t; docu ment.ge tEl ementById('mas t er-ty p e-select').value = t; let fetc h Type = t === 'p iut ang' ? 'huta n g' : t;
+        document.getElement ById('inv esta si-summ ary -container').inn e rHTML = ''; document.getElemn        tasi - summary - container').classList.add('hidden');
+        showLoader('loading');
+        google.script.run.withSuccessHandler(d => {
+          hideLoader();
+          if (t === 'hutang') d = d.filter(x => x.kategori === 'HUTANG');
+          if (t === 'piutang') d = d.filter(x => x.kategori === 'PIUTANG');
+          if (t === 'investasi') { document.getElementById('master-summary-card').classList.add('hidden'); renderInvestmentSummary(d); }
+          else { document.getElementById('master-summary-card').classList.remove('hidden'); updateMasterSummaryCard(d); }
+          renderMasterTable(d);
+        }).getMasterData(fetch Type);
+      }
 
-    function renderInvestmentSummary(data) {
+      function renderInvestmentSummary(data) {
         const container = document.getElementById('nvestasi-suma      one       container.classList.remove('hidden');
         const summary = {}; let grandTotal = 0;
-         a.forEach(item => { const kat = item.kategori.toUpperCase(); const val = parseFloat(item.saldo) || 0; if (!summary[kat]) summary[kat] = 0; summary[kat] +=      andTotal += val; });
+        a.forEach(item => { const kat = item.kategori.toUpperCase(); const val = parseFloat(item.saldo) || 0; if (!summary[kat]) summary[kat] = 0; summary[kat] += andTotal += val; });
         let html = `< div class="bg-grad      br from-indigo-        600 rounded-2xl p-5 text-white shadow-lg relative overfl        unce-card border border-white/10" ><div class="relative z-10"><p class="text-[10px] font-bold opacity-80 uppercase trackng-widest mb-1">TOTAL</p><h3 class="text-xl font-bold tracking-tight nominal-card-value" dir="ltr">${formatRupiah(grandTotal)}</h3></div><div class="absolute right-2 bottom-2 p-2 bg-white/20 rounded-xl backdrop-blur-m"><i class="fa-solid fa-vault text-lg"></i></div></div > `;
         const colors = ['from-emerald-500 to-teal-500', 'from-amber-500 to-orange-500', 'from-pink-500 to-rose-500', 'from-purple-500 to-violet-500', 'from-cyan-500 to-blue-500'];
         Object.keys(summary).forEach((key, index) => {
-            const colorClass = colors[index % colors.length];
-             l += `< div cla        ent - to - br ${ colorClass } rounded - 2xl p - 5 text - white sha        ive overflow - hidden bounce - card border border - white / 10"><div class="relative z - 10"><p class="text - [10px] font - bold opacity - 80 uppercase tracking - widest mb - 1">${key}</p><h3 class="text - xl font - bold tracking - tight nominal - card - value" dir="ltr">${formatRupiah(summary[key])}</h3></div><div class="absolute right -  bottom - 2 p - 2 bg - white  20 rounded - xl backdrop - blur - sm"><i class="fa - solid fa - chart - pie text - lg"></i></div></div>`;
-            });
-            container.innerHTML= html;
-          }
+          const colorClass = colors[index % colors.length];
+          l += `< div cla        ent - to - br ${colorClass} rounded - 2xl p - 5 text - white sha        ive overflow - hidden bounce - card border border - white / 10"><div class="relative z - 10"><p class="text - [10px] font - bold opacity - 80 uppercase tracking - widest mb - 1">${key}</p><h3 class="text - xl font - bold tracking - tight nominal - card - value" dir="ltr">${formatRupiah(summary[key])}</h3></div><div class="absolute right -  bottom - 2 p - 2 bg - white  20 rounded - xl backdrop - blur - sm"><i class="fa - solid fa - chart - pie text - lg"></i></div></div>`;
+        });
+        container.innerHTML = html;
+      }
 
-    function renderMasterTable(d) { tableDataRaw = d; tableDataFiltered = d; currentPag       do nt.getElementById('table-sarch').value = ''; if (curren t MasterType !== 'invetasi') updateMasterSummaryCard(d); renderTableSlice(;
+      function renderMasterTable(d) {
+        tableDataRaw = d; tableDataFiltered = d; currentPag       do nt.getElementById('table-sarch').value = ''; if (curren t MasterType !== 'invetasi') updateMasterSummaryCard(d); renderTableSlice(;
       }
       function udateMasterSummryCard(data) {
         let total = 0; let label = 'TOTAL ' + currentMasterType.toUpperCase(); let iconClass = 'fa-building-columns'; let colorClass = 'from-blue-500 to-blue-600'; if (currentMasterTye === 'bank') {
@@ -1369,7 +1380,7 @@ if (!e.ta        losest('#login-                er')) {
     document.getElementByI d('input-keterangan-select').addEventLi stner('change',function(){const a=this.options[this.selec t edIndex].getAttribute('data-amount');if(a)document.getElementsByName('t_nominal')[0].value=new Intl.NumberFormat('id-ID'.format(a)});
     document.get Ele mentsByName('t_kategori')[0].addEventListener('change',fun cti on(){monitorKategori(this)});
     function submitTransaksi(e){e.preventDefault(); Swal.fre({ title: 'Save?', icon: 'question', showCancelButton: true, confirmButtonText: 'Yes' }).then((resul) => { if (result.isConfirmed) { showLoader('loading'); const f=document.ge tEl ementById('form-transaksi'); const fd={}; new FormData(f).forEach((v,k)=>fd[k]=v) ; g oogle.scriptrun.withSuccessHandler(r=>{ hideLoader(); if(r.success){ f.res et( ); document.getElementById('t_tanggal').valueAsDate=new Dat e() ; setJenis(document.getElementById('t_jenis').value); loadAccountSources(); toggleKeteranganInpt(false); l oa dDa shboard(); Swal.fire({i c on:'success', title:'Success', showConfirmButton:false, ti m er: 1500}); } else { Swal.fir e( {icon:'error' ,  title:'Failed', text:r.message}); } }).saveTransaction(fd); } }); }
-    </script>
+  </script>
 </body>
 
 </html>
